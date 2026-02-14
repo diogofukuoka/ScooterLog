@@ -3,56 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyScooter Log - Cloud Sync</title>
+    <title>MyScooter Log</title>
     
-    <!-- Tailwind CSS -->
+    <!-- 1. Tratamento de Erros (Para não ficar tela branca) -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.getElementById('error-display').style.display = 'block';
+            document.getElementById('error-message').innerText = "Erro: " + message + "\nLinha: " + lineno;
+            document.getElementById('loading').style.display = 'none';
+        };
+    </script>
+
+    <!-- 2. Estilos CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- Leaflet Routing Machine -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <style>
         #map-container { height: 400px; width: 100%; border-radius: 0.5rem; z-index: 1; }
         .leaflet-routing-container { display: none !important; }
-        .loader { border: 2px solid #f3f3f3; border-top: 2px solid #10b981; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #10b981; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Melhoria para mobile */
         .touch-target { min-height: 44px; }
+        
+        /* Loading Screen */
+        #loading { position: fixed; inset: 0; background: #f8fafc; display: flex; justify-content: center; align-items: center; z-index: 9999; flex-direction: column; gap: 10px; }
+        #error-display { display: none; position: fixed; inset: 0; background: #fee2e2; color: #991b1b; padding: 20px; z-index: 10000; font-family: monospace; }
     </style>
+
+    <!-- 3. Bibliotecas JS (Ordem Importante) -->
+    <!-- React e ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel (Para traduzir o código no navegador) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
 <body class="bg-slate-50 pb-20">
+
+    <!-- Tela de Carregamento Inicial -->
+    <div id="loading">
+        <div class="loader"></div>
+        <p class="text-slate-500 font-sans text-sm">Carregando App...</p>
+    </div>
+
+    <!-- Tela de Erro (Aparece se falhar) -->
+    <div id="error-display">
+        <h1 class="font-bold text-xl mb-2">Ocorreu um erro!</h1>
+        <pre id="error-message"></pre>
+        <p class="mt-4 text-sm">Tente recarregar a página.</p>
+    </div>
+
+    <!-- Onde o React vai montar o app -->
     <div id="root"></div>
 
+    <!-- 4. O Código do Aplicativo -->
     <script type="text/babel">
+        // Captura segura das variáveis do React
         const { useState, useEffect, useRef } = React;
 
-        // --- ÍCONES ---
-        const IconBase = ({ children, size = 24, className = "", ...props }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
-        );
-        const MapPin = (props) => <IconBase {...props}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></IconBase>;
-        const Trash2 = (props) => <IconBase {...props}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></IconBase>;
-        const Zap = (props) => <IconBase {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></IconBase>;
-        const MapIcon = (props) => <IconBase {...props}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></IconBase>;
-        const X = (props) => <IconBase {...props}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></IconBase>;
-        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></IconBase>;
-        const Settings = (props) => <IconBase {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></Settings>;
-        const Cloud = (props) => <IconBase {...props}><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></IconBase>;
-        const RefreshCw = (props) => <IconBase {...props}><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></IconBase>;
-
+        // --- DADOS E UTILITÁRIOS ---
         const SAVED_LOCATIONS = [
             { name: 'Casa', address: 'R. Guilherme Lunardon, 300 - Pilarzinho, Curitiba - PR, 82110-240' },
             { name: 'Curióla', address: 'Rua Antonio César Casagrande, 455 - Pilarzinho, Curitiba - PR, 82110-080' },
@@ -72,13 +86,26 @@
             { name: 'Parque São Lourenço', address: 'R. Prof. Nilo Brandão, 668 - São Lourenço' }
         ];
 
-        // --- COMPONENTE DE SELEÇÃO DE ENDEREÇO (MOBILE FRIENDLY) ---
+        // --- ÍCONES (SVG Inline para evitar dependências externas) ---
+        const IconBase = ({ children, size = 24, className = "", ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+        );
+        const MapPin = (props) => <IconBase {...props}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></IconBase>;
+        const Trash2 = (props) => <IconBase {...props}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></IconBase>;
+        const Zap = (props) => <IconBase {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></IconBase>;
+        const MapIcon = (props) => <IconBase {...props}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></IconBase>;
+        const X = (props) => <IconBase {...props}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></IconBase>;
+        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></IconBase>;
+        const Settings = (props) => <IconBase {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></Settings>;
+        const RefreshCw = (props) => <IconBase {...props}><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></IconBase>;
+
+        // --- COMPONENTE DE SELEÇÃO DE ENDEREÇO ---
         const AddressSelector = ({ label, value, onChange, onClear }) => {
             const [showSuggestions, setShowSuggestions] = useState(false);
             
             const filtered = SAVED_LOCATIONS.filter(l => 
-                l.name.toLowerCase().includes(value.toLowerCase()) || 
-                l.address.toLowerCase().includes(value.toLowerCase())
+                l.name.toLowerCase().includes((value || '').toLowerCase()) || 
+                l.address.toLowerCase().includes((value || '').toLowerCase())
             );
 
             return (
@@ -118,6 +145,7 @@
             );
         };
 
+        // --- APP PRINCIPAL ---
         const App = () => {
             // Configurações da Scooter
             const AUTONOMIA = 76; 
@@ -128,8 +156,7 @@
 
             // Estados
             const [trips, setTrips] = useState([]);
-            const [loading, setLoading] = useState(false);
-            const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, success, error
+            const [syncStatus, setSyncStatus] = useState('idle'); 
             
             // Configurações de Sync
             const [showSettings, setShowSettings] = useState(false);
@@ -152,13 +179,20 @@
             const routingControlRef = useRef(null);
             const markersRef = useRef([]);
 
+            // Remover Loading Screen quando montar
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if(loader) loader.style.display = 'none';
+            }, []);
+
             // --- SYNC LOGIC ---
             useEffect(() => {
-                // Carregar do LocalStorage primeiro
                 const localData = localStorage.getItem('trips_data');
-                if (localData) setTrips(JSON.parse(localData));
-                
-                // Se tiver credenciais, tenta puxar do GitHub
+                if (localData) {
+                    try {
+                        setTrips(JSON.parse(localData));
+                    } catch(e) { console.error("Erro ao ler cache local", e); }
+                }
                 if (githubToken && gistId) {
                     fetchFromGist();
                 }
@@ -182,8 +216,6 @@
                     const data = await res.json();
                     const content = data.files['trips.json'] ? JSON.parse(data.files['trips.json'].content) : [];
                     
-                    // Mesclar lógica simples: se o Gist tiver mais dados ou dados diferentes, usamos ele.
-                    // Para simplificar, o Gist é a fonte da verdade se existir.
                     setTrips(content);
                     localStorage.setItem('trips_data', JSON.stringify(content));
                     setSyncStatus('success');
@@ -194,7 +226,6 @@
             };
 
             const saveToGist = async (updatedTrips) => {
-                // Salva local
                 localStorage.setItem('trips_data', JSON.stringify(updatedTrips));
                 
                 if (!githubToken || !gistId) return;
@@ -221,6 +252,7 @@
 
             // --- MAP LOGIC ---
             const getNameByAddress = (addr) => {
+                if(!addr) return null;
                 const found = SAVED_LOCATIONS.find(loc => loc.address === addr);
                 return found ? found.name : null;
             };
@@ -258,10 +290,8 @@
                 const map = mapRef.current;
                 if (!map) return;
                 
-                // Limpar rota anterior
                 if (routingControlRef.current) map.removeControl(routingControlRef.current);
                 
-                // Limpar marcadores manuais
                 markersRef.current.forEach(m => map.removeLayer(m));
                 markersRef.current = [];
 
@@ -281,31 +311,18 @@
                 routingControlRef.current = control;
             };
 
-            // Inicialização do Mapa e Eventos de Clique
             useEffect(() => {
                 if (showMap && !mapRef.current) {
                     setTimeout(() => {
                         const map = L.map('map-container').setView([-25.4284, -49.2733], 13);
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
                         
-                        // Evento de clique no mapa para selecionar pontos
                         map.on('click', async (e) => {
                             const { lat, lng } = e.latlng;
-                            
-                            // Adiciona marcador visual temporário
                             const marker = L.marker([lat, lng]).addTo(map);
                             markersRef.current.push(marker);
-
                             const address = await reverseGeocode(lat, lng);
 
-                            // Lógica simples: Se origem vazia, preenche origem. Se origem cheia e destino vazio, preenche destino.
-                            // Como o estado dentro do listener do Leaflet pode estar "stale", usamos uma verificação direta nos inputs visuais ou lógica externa, 
-                            // mas aqui vamos simplificar assumindo o fluxo sequencial.
-                            
-                            // Nota: Acessar state dentro de event listener do Leaflet requer refs ou cuidado. 
-                            // Vamos usar uma abordagem onde verificamos os inputs DOM para garantir valor atualizado ou apenas setamos sequencialmente.
-                            
-                            // Hack rápido para ler o estado atual sem complexidade de refs para os inputs
                             setAddrOrigin(prev => {
                                 if (!prev) {
                                     marker.bindPopup("Origem definida").openPopup();
@@ -314,14 +331,9 @@
                                     setAddrDest(prevDest => {
                                         if (!prevDest) {
                                             marker.bindPopup("Destino definido").openPopup();
-                                            // Se temos os dois agora, traçar rota
-                                            // Precisamos das coordenadas da origem anterior. 
-                                            // Para simplificar, o usuário clica em "Buscar Rota" depois de preencher os textos, 
-                                            // OU chamamos handleRouteSearch aqui se tivéssemos as coords.
-                                            // Vamos apenas preencher o texto para o usuário confirmar.
                                             return address;
                                         }
-                                        return prevDest; // Já tem os dois
+                                        return prevDest;
                                     });
                                     return prev;
                                 }
@@ -329,14 +341,14 @@
                         });
 
                         mapRef.current = map;
-                    }, 100);
+                    }, 200);
                 }
             }, [showMap]);
 
             const confirmMapDistance = () => {
                 setNewDistance(mapDistance);
-                const nameOrigin = getNameByAddress(addrOrigin) || addrOrigin.split(',')[0];
-                const nameDest = getNameByAddress(addrDest) || addrDest.split(',')[0];
+                const nameOrigin = getNameByAddress(addrOrigin) || (addrOrigin ? addrOrigin.split(',')[0] : '?');
+                const nameDest = getNameByAddress(addrDest) || (addrDest ? addrDest.split(',')[0] : '?');
                 setNewRoute(`${nameOrigin} / ${nameDest}`);
                 closeMap();
             };
@@ -375,7 +387,7 @@
                 const newTrip = { id: Date.now(), date: newDate, distance: parseFloat(newDistance), route: newRoute };
                 const updatedTrips = [newTrip, ...trips];
                 setTrips(updatedTrips);
-                saveToGist(updatedTrips); // Salva na nuvem e local
+                saveToGist(updatedTrips);
                 setNewRoute(''); setNewDistance('');
             };
 
@@ -511,8 +523,16 @@
                 </div>
             );
         };
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+
+        // Inicialização Segura
+        try {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        } catch (error) {
+            console.error("Erro fatal ao montar React:", error);
+            document.getElementById('error-display').style.display = 'block';
+            document.getElementById('error-message').innerText = error.toString();
+        }
     </script>
 </body>
 </html>
