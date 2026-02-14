@@ -64,6 +64,7 @@
         const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></IconBase>;
         const Crosshair = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></IconBase>;
         const ArrowUpDown = (props) => <IconBase {...props}><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></IconBase>;
+        const SettingsIcon = (props) => <IconBase {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></IconBase>;
 
         const SAVED_LOCATIONS = [
             { name: 'Casa', address: 'R. Guilherme Lunardon, 300 - Pilarzinho, Curitiba - PR, 82110-240' },
@@ -194,12 +195,52 @@
             const [isSearching, setIsSearching] = useState(false);
             
             const [pickingMode, setPickingMode] = useState(null);
+            const [showSettings, setShowSettings] = useState(false);
+            const [syncConfig, setSyncConfig] = useState({
+                token: localStorage.getItem('gh_token') || '',
+                gistId: localStorage.getItem('gh_gist_id') || ''
+            });
             
             const mapRef = useRef(null);
             const routingControlRef = useRef(null);
             const pickingModeRef = useRef(null);
 
             useEffect(() => { pickingModeRef.current = pickingMode; }, [pickingMode]);
+
+            // --- SINCRONIZAÇÃO GITHUB ---
+            const syncWithGithub = async (dataToSave) => {
+                if (!syncConfig.token || !syncConfig.gistId) return;
+                try {
+                    await fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
+                        method: 'PATCH',
+                        headers: { 'Authorization': `token ${syncConfig.token}` },
+                        body: JSON.stringify({
+                            files: { "scooter_trips.json": { content: JSON.stringify(dataToSave) } }
+                        })
+                    });
+                } catch (e) { console.error("Erro ao sincronizar:", e); }
+            };
+
+            const loadFromGithub = async () => {
+                if (!syncConfig.token || !syncConfig.gistId) return;
+                try {
+                    const res = await fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
+                        headers: { 'Authorization': `token ${syncConfig.token}` }
+                    });
+                    const data = await res.json();
+                    const content = JSON.parse(data.files["scooter_trips.json"].content);
+                    if (content) {
+                        setTrips(content);
+                        localStorage.setItem('scooter_trips', JSON.stringify(content));
+                    }
+                } catch (e) { console.error("Erro ao carregar nuvem:", e); }
+            };
+
+            useEffect(() => {
+                const local = JSON.parse(localStorage.getItem('scooter_trips') || '[]');
+                setTrips(local);
+                loadFromGithub();
+            }, []);
 
             useEffect(() => {
                 if (mapRef.current) {
@@ -285,6 +326,16 @@
                 setAddrDest(temp);
             };
 
+            // --- FUNÇÃO DE LIMPAR TUDO ---
+            const handleClearAll = () => {
+                if (window.confirm("ATENÇÃO: Tem certeza que deseja apagar TODOS os registros de viagem? Essa ação não pode ser desfeita.")) {
+                    setTrips([]);
+                    localStorage.setItem('scooter_trips', '[]');
+                    syncWithGithub([]);
+                    setShowSettings(false);
+                }
+            };
+
             useEffect(() => {
                 if (showMap && !mapRef.current) {
                     setTimeout(() => {
@@ -357,12 +408,18 @@
                 e.preventDefault();
                 if (!newDistance || !newRoute) return;
                 const distValue = parseFloat(newDistance.toString().replace(',', '.'));
-                setTrips([{ id: Date.now(), date: newDate, distance: distValue, route: newRoute }, ...trips]);
+                const updatedTrips = [{ id: Date.now(), date: newDate, distance: distValue, route: newRoute }, ...trips];
+                setTrips(updatedTrips);
+                localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
+                syncWithGithub(updatedTrips);
                 setNewRoute(''); setNewDistance('');
             };
 
             const handleDeleteTrip = (id) => {
-                setTrips(trips.filter(trip => trip.id !== id));
+                const updatedTrips = trips.filter(trip => trip.id !== id);
+                setTrips(updatedTrips);
+                localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
+                syncWithGithub(updatedTrips);
             };
 
             const totalKm = trips.reduce((acc, curr) => acc + curr.distance, 0);
@@ -443,9 +500,40 @@
                         </div>
                     )}
 
+                    {/* MODAL CONFIGURAÇÕES */}
+                    {showSettings && (
+                        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-6">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4">
+                                <h2 className="font-black text-slate-700 text-lg">Configurações</h2>
+                                
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Sincronização GitHub</p>
+                                    <input type="password" placeholder="GitHub Personal Token" value={syncConfig.token} onChange={e => setSyncConfig({...syncConfig, token: e.target.value})} className="w-full bg-slate-100 p-3 rounded-xl text-xs outline-none" />
+                                    <input type="text" placeholder="Gist ID" value={syncConfig.gistId} onChange={e => setSyncConfig({...syncConfig, gistId: e.target.value})} className="w-full bg-slate-100 p-3 rounded-xl text-xs outline-none" />
+                                    <button onClick={() => {
+                                        localStorage.setItem('gh_token', syncConfig.token);
+                                        localStorage.setItem('gh_gist_id', syncConfig.gistId);
+                                        setShowSettings(false);
+                                        window.location.reload();
+                                    }} className="w-full bg-emerald-600 text-white font-black py-3 rounded-xl shadow-lg text-xs uppercase tracking-widest">Salvar e Sincronizar</button>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-100">
+                                    <p className="text-[10px] font-bold text-red-400 uppercase mb-2">Zona de Perigo</p>
+                                    <button onClick={handleClearAll} className="w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 flex items-center justify-center gap-2 text-xs uppercase tracking-widest hover:bg-red-100 transition-colors">
+                                        <Trash2 size={16} /> Apagar Todos os Registros
+                                    </button>
+                                </div>
+
+                                <button onClick={() => setShowSettings(false)} className="w-full text-slate-400 text-xs font-bold py-2">FECHAR</button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="max-w-4xl mx-auto space-y-6">
                         <div className="flex items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                             <h1 className="text-2xl font-bold text-emerald-600 flex items-center gap-2"><Zap className="fill-emerald-600" /> MyScooter Log</h1>
+                            <button onClick={() => setShowSettings(true)} className="p-2 text-slate-400 bg-white rounded-full shadow-sm border hover:bg-slate-50 transition-colors"><SettingsIcon /></button>
                         </div>
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
