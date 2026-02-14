@@ -24,8 +24,8 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <style>
-        /* Garante que o mapa ocupe espaço e funcione bem no touch */
-        #map-container { height: 100%; width: 100%; z-index: 1; min-height: 300px; background: #e2e8f0; }
+        /* CSS Corrigido para o Mapa */
+        #map-container { height: 100%; width: 100%; z-index: 1; background: #e2e8f0; }
         
         .leaflet-routing-container { display: none !important; }
         
@@ -36,7 +36,6 @@
         .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         
-        /* Animação para indicar qual campo está sendo preenchido pelo mapa */
         @keyframes pulse-green {
             0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
             70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
@@ -44,7 +43,6 @@
         }
         .picking-active { animation: pulse-green 2s infinite; border-color: #10b981 !important; }
         
-        /* Cursor de mira quando estiver escolhendo ponto */
         .cursor-crosshair { cursor: crosshair !important; }
     </style>
 </head>
@@ -88,7 +86,6 @@
             { name: 'Parque São Lourenço', address: 'R. Prof. Nilo Brandão, 668 - São Lourenço' }
         ];
 
-        // --- COMPONENTE DE INPUT COM LISTA E BOTÃO DE MAPA ---
         const LocationInput = ({ label, value, onChange, placeholder, onPickMap, isPicking }) => {
             const [showList, setShowList] = useState(false);
             const [filteredLocations, setFilteredLocations] = useState(SAVED_LOCATIONS);
@@ -198,15 +195,22 @@
             const [addrDest, setAddrDest] = useState('');
             const [isSearching, setIsSearching] = useState(false);
             
-            // Estado para controlar qual campo está sendo "picado" no mapa
-            const [pickingMode, setPickingMode] = useState(null); // 'origin' | 'dest' | null
+            const [pickingMode, setPickingMode] = useState(null);
             
             const mapRef = useRef(null);
             const routingControlRef = useRef(null);
-            const pickingModeRef = useRef(null); // Ref para acessar dentro do event listener do mapa
+            const pickingModeRef = useRef(null);
 
-            // Sincroniza o ref com o state
             useEffect(() => { pickingModeRef.current = pickingMode; }, [pickingMode]);
+
+            // Força o mapa a recalcular o tamanho quando o modo de seleção muda
+            useEffect(() => {
+                if (mapRef.current) {
+                    setTimeout(() => {
+                        mapRef.current.invalidateSize();
+                    }, 100);
+                }
+            }, [pickingMode]);
 
             const getNameByAddress = (addr) => {
                 const found = SAVED_LOCATIONS.find(loc => loc.address === addr);
@@ -215,7 +219,6 @@
 
             const searchAddress = async (query) => {
                 try {
-                    // Verifica se é uma coordenada (ex: "-25.42, -49.27")
                     const coordMatch = query.match(/^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/);
                     if (coordMatch) {
                         return { lat: parseFloat(coordMatch[1]), lon: parseFloat(coordMatch[3]) };
@@ -265,7 +268,6 @@
                         const map = L.map('map-container').setView([-25.4284, -49.2733], 13);
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
                         
-                        // Listener de clique no mapa (funciona para mouse e touch)
                         map.on('click', (e) => {
                             const mode = pickingModeRef.current;
                             if (mode) {
@@ -273,7 +275,6 @@
                                 const lngStr = e.latlng.lng.toFixed(6);
                                 const coordString = `${latStr}, ${lngStr}`;
                                 
-                                // Adiciona um marcador visual temporário
                                 L.marker(e.latlng).addTo(map).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
 
                                 if (mode === 'origin') {
@@ -281,7 +282,7 @@
                                 } else if (mode === 'dest') {
                                     setAddrDest(coordString);
                                 }
-                                setPickingMode(null); // Sai do modo de seleção
+                                setPickingMode(null);
                             }
                         });
 
@@ -379,14 +380,17 @@
                                     </button>
                                 </div>
 
-                                <div className="relative flex-grow w-full h-full bg-slate-200">
+                                {/* CORREÇÃO AQUI: Container relativo com mapa absoluto */}
+                                <div className="relative flex-grow w-full bg-slate-200 overflow-hidden">
                                     {pickingMode && (
                                         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-emerald-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold animate-bounce flex items-center gap-2 whitespace-nowrap pointer-events-none">
                                             <MapPin size={16} />
                                             Toque no mapa para definir {pickingMode === 'origin' ? 'Origem' : 'Destino'}
                                         </div>
                                     )}
-                                    <div id="map-container" className={pickingMode ? 'cursor-crosshair' : ''}></div>
+                                    
+                                    {/* O mapa agora ocupa absolutamente todo o espaço do pai */}
+                                    <div id="map-container" className={`absolute inset-0 ${pickingMode ? 'cursor-crosshair' : ''}`}></div>
                                     
                                     {mapDistance > 0 && (
                                         <div className="absolute bottom-6 left-6 right-6 bg-white/95 p-4 rounded-lg shadow-lg border border-emerald-100 flex justify-between items-center z-[1000]">
