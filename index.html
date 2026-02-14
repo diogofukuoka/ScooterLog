@@ -24,11 +24,11 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <style>
-        /* CSS Reset e Ajustes Específicos */
+        /* Reset e Ajustes */
         body { -webkit-tap-highlight-color: transparent; }
         
-        /* O container do mapa precisa ser relativo para o Leaflet funcionar bem com absolute */
-        #map-container { z-index: 1; background: #e2e8f0; }
+        /* O container do mapa deve ter altura definida pelo pai flex */
+        #map-container { width: 100%; height: 100%; z-index: 1; background: #e2e8f0; }
         
         .leaflet-routing-container { display: none !important; }
         
@@ -46,7 +46,10 @@
         }
         .picking-active { animation: pulse-green 2s infinite; border-color: #10b981 !important; }
         
+        /* Cursor de mira aplicado ao wrapper */
         .cursor-crosshair { cursor: crosshair !important; }
+        .cursor-crosshair .leaflet-container { cursor: crosshair !important; }
+        .cursor-crosshair .leaflet-interactive { cursor: crosshair !important; }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -206,14 +209,13 @@
 
             useEffect(() => { pickingModeRef.current = pickingMode; }, [pickingMode]);
 
-            // CORREÇÃO CRÍTICA: Força o Leaflet a recalcular o tamanho do container
-            // Isso resolve o problema da tela cinza quando o layout muda
+            // CORREÇÃO DEFINITIVA: Força o Leaflet a recalcular o tamanho
             useEffect(() => {
                 if (mapRef.current) {
-                    // Pequeno delay para garantir que o DOM atualizou
+                    // InvalidateSize é chamado com um pequeno delay para garantir que o DOM já renderizou
                     setTimeout(() => {
                         mapRef.current.invalidateSize();
-                    }, 200);
+                    }, 100);
                 }
             }, [pickingMode, showMap]);
 
@@ -355,16 +357,15 @@
                 <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8 pb-20">
                     {showMap && (
                         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                            {/* CORREÇÃO: Estrutura Flexbox com altura fixa para o modal */}
                             <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh]">
                                 
-                                {/* Header - Tamanho fixo */}
+                                {/* Header */}
                                 <div className="p-4 bg-slate-100 border-b flex justify-between items-center flex-shrink-0">
                                     <h3 className="font-bold text-slate-700 flex items-center gap-2"><MapIcon size={18} /> Calcular Rota</h3>
                                     <button onClick={closeMap} className="text-slate-400 hover:text-red-500"><X size={24} /></button>
                                 </div>
                                 
-                                {/* Inputs - Tamanho fixo */}
+                                {/* Inputs */}
                                 <div className="p-4 bg-white border-b overflow-y-visible z-20 flex-shrink-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <LocationInput 
@@ -389,8 +390,8 @@
                                     </button>
                                 </div>
 
-                                {/* Mapa - Ocupa o resto do espaço (flex-grow) */}
-                                <div className="relative flex-grow w-full bg-slate-200 overflow-hidden min-h-0">
+                                {/* Mapa Wrapper - A classe de cursor vai AQUI, não no mapa */}
+                                <div className={`relative flex-grow w-full bg-slate-200 overflow-hidden min-h-0 ${pickingMode ? 'cursor-crosshair' : ''}`}>
                                     {pickingMode && (
                                         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-emerald-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold animate-bounce flex items-center gap-2 whitespace-nowrap pointer-events-none">
                                             <MapPin size={16} />
@@ -398,8 +399,8 @@
                                         </div>
                                     )}
                                     
-                                    {/* O mapa usa absolute inset-0 para preencher o pai relativo */}
-                                    <div id="map-container" className={`absolute inset-0 w-full h-full ${pickingMode ? 'cursor-crosshair' : ''}`}></div>
+                                    {/* O container do mapa é estático. O React não mexe nas classes dele. */}
+                                    <div id="map-container"></div>
                                     
                                     {mapDistance > 0 && (
                                         <div className="absolute bottom-6 left-6 right-6 bg-white/95 p-4 rounded-lg shadow-lg border border-emerald-100 flex justify-between items-center z-[1000]">
