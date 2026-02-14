@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MyScooter Log - Mapa Inteligente</title>
     
     <!-- Tailwind CSS -->
@@ -24,23 +24,28 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <style>
-        #map-container { height: 100%; width: 100%; border-radius: 0.5rem; z-index: 1; min-height: 350px; }
+        /* Garante que o mapa ocupe espaço e funcione bem no touch */
+        #map-container { height: 100%; width: 100%; z-index: 1; min-height: 300px; background: #e2e8f0; }
+        
         .leaflet-routing-container { display: none !important; }
+        
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #10b981; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        /* Animação para o modo de seleção */
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        
+        /* Animação para indicar qual campo está sendo preenchido pelo mapa */
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
             100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
-        .picking-mode { animation: pulse-border 2s infinite; border-color: #10b981; }
+        .picking-active { animation: pulse-green 2s infinite; border-color: #10b981 !important; }
+        
+        /* Cursor de mira quando estiver escolhendo ponto */
+        .cursor-crosshair { cursor: crosshair !important; }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -134,7 +139,7 @@
                                 onChange={(e) => { onChange(e.target.value); setShowList(true); }}
                                 onFocus={() => setShowList(true)}
                                 placeholder={placeholder}
-                                className={`w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm transition-all ${isPicking ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-slate-300'}`} 
+                                className={`w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm transition-all ${isPicking ? 'picking-active' : 'border-slate-300'}`} 
                             />
                             {value && (
                                 <button 
@@ -147,7 +152,7 @@
                         </div>
                         <button 
                             onClick={onPickMap}
-                            className={`p-3 rounded-lg border transition-colors ${isPicking ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}
+                            className={`p-3 rounded-lg border transition-colors flex-shrink-0 ${isPicking ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}
                             title="Selecionar no mapa"
                         >
                             <Crosshair size={20} />
@@ -260,7 +265,7 @@
                         const map = L.map('map-container').setView([-25.4284, -49.2733], 13);
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
                         
-                        // Listener de clique no mapa
+                        // Listener de clique no mapa (funciona para mouse e touch)
                         map.on('click', (e) => {
                             const mode = pickingModeRef.current;
                             if (mode) {
@@ -374,9 +379,9 @@
                                     </button>
                                 </div>
 
-                                <div className="relative flex-grow w-full h-full">
+                                <div className="relative flex-grow w-full h-full bg-slate-200">
                                     {pickingMode && (
-                                        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-emerald-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold animate-bounce flex items-center gap-2 whitespace-nowrap">
+                                        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-emerald-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold animate-bounce flex items-center gap-2 whitespace-nowrap pointer-events-none">
                                             <MapPin size={16} />
                                             Toque no mapa para definir {pickingMode === 'origin' ? 'Origem' : 'Destino'}
                                         </div>
