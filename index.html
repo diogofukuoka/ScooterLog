@@ -2,71 +2,77 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MyScooter Log</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" integrity="sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSA8Ups/3c5QM47CwdXUEOCqOPDojwJ638r2jA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
-        body { -webkit-tap-highlight-color: transparent; }
+        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
         #map-container { height: 400px; width: 100%; border-radius: 0.5rem; z-index: 1; }
         .leaflet-routing-container { display: none !important; }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #10b981; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Loading Screen */
+        /* Loading & Error Screens */
         #loading { position: fixed; inset: 0; background: #f8fafc; display: flex; justify-content: center; align-items: center; z-index: 9999; flex-direction: column; gap: 10px; }
         #error-display { display: none; position: fixed; inset: 0; background: #fee2e2; color: #991b1b; padding: 20px; z-index: 10000; font-family: monospace; overflow: auto; }
     </style>
 
-    <!-- Tratamento de Erros Global -->
+    <!-- Tratamento de Erros -->
     <script>
         window.onerror = function(msg, url, line, col, error) {
+            // Ignora erros comuns de ResizeObserver que não quebram o app
+            if (msg.includes('ResizeObserver loop')) return false;
+
             var display = document.getElementById('error-display');
             var message = document.getElementById('error-message');
             if(display) {
                 display.style.display = 'block';
-                message.innerText = "Erro: " + msg + "\nLinha: " + line + "\nURL: " + url;
-                document.getElementById('loading').style.display = 'none';
+                message.innerText = "Erro: " + msg + "\nLinha: " + line + "\nDetalhe: " + (error ? error.stack : 'N/A');
+                var loader = document.getElementById('loading');
+                if(loader) loader.style.display = 'none';
             }
             return false;
         };
     </script>
 
-    <!-- Bibliotecas JS (Versões Simplificadas para evitar bloqueio) -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <!-- Bibliotecas JS (CDNJS - Mais estável e com CORS correto) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" integrity="sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzxuSg4DiQUCpauz/EWjgk5TYQqX/nyB6E8ZbCJJWA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body class="bg-slate-50 pb-20">
 
     <div id="loading">
         <div class="loader"></div>
-        <p class="text-slate-500 font-sans text-sm">Carregando...</p>
+        <p class="text-slate-500 font-sans text-sm">Carregando App...</p>
     </div>
 
     <div id="error-display">
         <h1 class="font-bold text-xl mb-2">Ops! Algo deu errado.</h1>
-        <pre id="error-message" class="whitespace-pre-wrap"></pre>
-        <button onclick="window.location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">Recarregar Página</button>
+        <pre id="error-message" class="whitespace-pre-wrap text-xs"></pre>
+        <button onclick="window.location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded shadow">Tentar Novamente</button>
+        <button onclick="localStorage.clear(); window.location.reload()" class="mt-4 ml-2 bg-slate-600 text-white px-4 py-2 rounded shadow">Limpar Dados e Recarregar</button>
     </div>
 
     <div id="root"></div>
 
-    <script type="text/babel">
-        // Correção para ícones do Leaflet sumindo
+    <script type="text/babel" data-presets="react">
+        // --- CORREÇÃO DE ÍCONES DO LEAFLET ---
+        // Isso corrige o problema dos marcadores invisíveis
         delete L.Icon.Default.prototype._getIconUrl;
         L.Icon.Default.mergeOptions({
-            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
         });
 
         const { useState, useEffect, useRef } = React;
