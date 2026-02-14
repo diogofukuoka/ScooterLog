@@ -24,29 +24,20 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <style>
-        /* Reset e Ajustes */
         body { -webkit-tap-highlight-color: transparent; }
-        
-        /* O container do mapa deve ter altura definida pelo pai flex */
         #map-container { width: 100%; height: 100%; z-index: 1; background: #e2e8f0; }
-        
         .leaflet-routing-container { display: none !important; }
-        
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #10b981; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        
         @keyframes pulse-green {
             0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
             70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
             100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
         .picking-active { animation: pulse-green 2s infinite; border-color: #10b981 !important; }
-        
-        /* Cursor de mira aplicado ao wrapper */
         .cursor-crosshair { cursor: crosshair !important; }
         .cursor-crosshair .leaflet-container { cursor: crosshair !important; }
         .cursor-crosshair .leaflet-interactive { cursor: crosshair !important; }
@@ -209,10 +200,8 @@
 
             useEffect(() => { pickingModeRef.current = pickingMode; }, [pickingMode]);
 
-            // CORREÇÃO DEFINITIVA: Força o Leaflet a recalcular o tamanho
             useEffect(() => {
                 if (mapRef.current) {
-                    // InvalidateSize é chamado com um pequeno delay para garantir que o DOM já renderizou
                     setTimeout(() => {
                         mapRef.current.invalidateSize();
                     }, 100);
@@ -222,6 +211,27 @@
             const getNameByAddress = (addr) => {
                 const found = SAVED_LOCATIONS.find(loc => loc.address === addr);
                 return found ? found.name : null;
+            };
+
+            // --- NOVA FUNÇÃO: Geocodificação Reversa (Lat/Lon -> Endereço) ---
+            const reverseGeocode = async (lat, lng) => {
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                    const data = await response.json();
+                    const addr = data.address;
+                    
+                    // Tenta montar um endereço legível
+                    const street = addr.road || addr.pedestrian || addr.suburb || addr.hamlet || addr.village;
+                    const number = addr.house_number ? `, ${addr.house_number}` : '';
+                    const district = addr.suburb || addr.neighbourhood || addr.city_district;
+                    
+                    if (street) {
+                        return `${street}${number}${district ? ` - ${district}` : ''}`;
+                    }
+                    return data.display_name.split(',')[0]; // Fallback
+                } catch (error) {
+                    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`; // Fallback para coordenadas se falhar
+                }
             };
 
             const searchAddress = async (query) => {
@@ -275,20 +285,26 @@
                         const map = L.map('map-container').setView([-25.4284, -49.2733], 13);
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
                         
-                        map.on('click', (e) => {
+                        map.on('click', async (e) => {
                             const mode = pickingModeRef.current;
                             if (mode) {
-                                const latStr = e.latlng.lat.toFixed(6);
-                                const lngStr = e.latlng.lng.toFixed(6);
-                                const coordString = `${latStr}, ${lngStr}`;
+                                const lat = e.latlng.lat;
+                                const lng = e.latlng.lng;
                                 
+                                // Feedback visual imediato
                                 L.marker(e.latlng).addTo(map).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
+                                
+                                // Coloca um placeholder enquanto busca
+                                if (mode === 'origin') setAddrOrigin("Buscando endereço...");
+                                else if (mode === 'dest') setAddrDest("Buscando endereço...");
 
-                                if (mode === 'origin') {
-                                    setAddrOrigin(coordString);
-                                } else if (mode === 'dest') {
-                                    setAddrDest(coordString);
-                                }
+                                // Busca o endereço real
+                                const address = await reverseGeocode(lat, lng);
+
+                                // Atualiza o campo com o endereço
+                                if (mode === 'origin') setAddrOrigin(address);
+                                else if (mode === 'dest') setAddrDest(address);
+                                
                                 setPickingMode(null);
                             }
                         });
@@ -300,9 +316,14 @@
 
             const confirmMapDistance = () => {
                 setNewDistance(mapDistance);
-                const nameOrigin = getNameByAddress(addrOrigin) || (addrOrigin.includes(',') && !isNaN(parseFloat(addrOrigin)) ? 'Mapa' : addrOrigin.split(',')[0]);
-                const nameDest = getNameByAddress(addrDest) || (addrDest.includes(',') && !isNaN(parseFloat(addrDest)) ? 'Mapa' : addrDest.split(',')[0]);
-                setNewRoute(`${nameOrigin} / ${nameDest}`);
+                // CORREÇÃO: Usa o texto que está no input (que agora é o endereço) em vez de forçar "Mapa"
+                const nameOrigin = getNameByAddress(addrOrigin) || addrOrigin;
+                const nameDest = getNameByAddress(addrDest) || addrDest;
+                
+                // Limita o tamanho do texto se for muito longo para o histórico
+                const formatName = (name) => name.length > 25 ? name.substring(0, 25) + '...' : name;
+                
+                setNewRoute(`${formatName(nameOrigin)} / ${formatName(nameDest)}`);
                 closeMap();
             };
 
@@ -390,7 +411,7 @@
                                     </button>
                                 </div>
 
-                                {/* Mapa Wrapper - A classe de cursor vai AQUI, não no mapa */}
+                                {/* Mapa Wrapper */}
                                 <div className={`relative flex-grow w-full bg-slate-200 overflow-hidden min-h-0 ${pickingMode ? 'cursor-crosshair' : ''}`}>
                                     {pickingMode && (
                                         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-emerald-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold animate-bounce flex items-center gap-2 whitespace-nowrap pointer-events-none">
@@ -399,7 +420,6 @@
                                         </div>
                                     )}
                                     
-                                    {/* O container do mapa é estático. O React não mexe nas classes dele. */}
                                     <div id="map-container"></div>
                                     
                                     {mapDistance > 0 && (
