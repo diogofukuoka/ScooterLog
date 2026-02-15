@@ -85,6 +85,24 @@
             { name: 'Parque São Lourenço', address: 'R. Prof. Nilo Brandão, 668 - São Lourenço' }
         ];
 
+        const PREDEFINED_ROUTES = [
+            { dist: 6.7, name: 'Casa/Curióla/CHC' },
+            { dist: 6.9, name: 'Casa/CHC' },
+            { dist: 8.8, name: 'CHC/Curióla/Casa' },
+            { dist: 7.6, name: 'CHC/Casa' },
+            { dist: 9.3, name: 'CHC/Casa/Curióla/Casa' },
+            { dist: 10.8, name: 'CHC/Carrefour Cabral/Casa' },
+            { dist: 9.4, name: 'CHC/Casa/Curióla/Casa' },
+            { dist: 5.8, name: 'Casa/Tia' },
+            { dist: 5.8, name: 'Tia/Casa' },
+            { dist: 1.2, name: 'Casa/Condor Pilarzinho' },
+            { dist: 1.2, name: 'Condor Pilarzinho/Casa' },
+            { dist: 4.1, name: 'Casa/Condor Nilo Peçanha' },
+            { dist: 4.5, name: 'Condor Nilo Peçanha/Casa' },
+            { dist: 1.2, name: 'Casa/Cabelo' },
+            { dist: 1.2, name: 'Cabelo/Casa' }
+        ];
+
         const LocationInput = ({ label, value, onChange, placeholder, onPickMap, isPicking }) => {
             const [showList, setShowList] = useState(false);
             const [filteredLocations, setFilteredLocations] = useState(SAVED_LOCATIONS);
@@ -187,6 +205,7 @@
             const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
             const [newDistance, setNewDistance] = useState('');
             const [newRoute, setNewRoute] = useState('');
+            const [showRouteList, setShowRouteList] = useState(false);
             
             const [showMap, setShowMap] = useState(false);
             const [mapDistance, setMapDistance] = useState(0);
@@ -204,8 +223,20 @@
             const mapRef = useRef(null);
             const routingControlRef = useRef(null);
             const pickingModeRef = useRef(null);
+            const routeInputRef = useRef(null);
 
             useEffect(() => { pickingModeRef.current = pickingMode; }, [pickingMode]);
+
+            // --- FECHAR LISTA DE ROTAS AO CLICAR FORA ---
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (routeInputRef.current && !routeInputRef.current.contains(event.target)) {
+                        setShowRouteList(false);
+                    }
+                };
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, []);
 
             // --- SINCRONIZAÇÃO GITHUB ---
             const syncWithGithub = async (dataToSave) => {
@@ -334,6 +365,13 @@
                     syncWithGithub([]);
                     setShowSettings(false);
                 }
+            };
+
+            // --- SELEÇÃO DE ROTA PREDEFINIDA ---
+            const handlePredefinedRouteSelect = (route) => {
+                setNewRoute(route.name);
+                setNewDistance(route.dist.toString().replace('.', ','));
+                setShowRouteList(false);
             };
 
             useEffect(() => {
@@ -546,7 +584,37 @@
                         <div className="bg-white p-6 rounded-2xl shadow-md border-l-4 border-emerald-500">
                             <form onSubmit={handleAddTrip} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                 <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label><input type="date" required value={newDate} onChange={(e) => setNewDate(e.target.value)} className="w-full bg-slate-50 border rounded-lg p-2.5" /></div>
-                                <div className="md:col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Trajeto</label><input type="text" value={newRoute} onChange={(e) => setNewRoute(e.target.value)} className="w-full border rounded-lg p-2.5" /></div>
+                                
+                                {/* CAMPO TRAJETO COM DROPDOWN */}
+                                <div className="md:col-span-2 relative" ref={routeInputRef}>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Trajeto</label>
+                                    <input 
+                                        type="text" 
+                                        value={newRoute} 
+                                        onChange={(e) => { setNewRoute(e.target.value); setShowRouteList(true); }}
+                                        onFocus={() => setShowRouteList(true)}
+                                        placeholder="Digite ou selecione..."
+                                        className="w-full border rounded-lg p-2.5" 
+                                    />
+                                    {showRouteList && (
+                                        <ul className="absolute z-50 w-full bg-white border rounded-lg shadow-xl max-h-60 overflow-y-auto mt-1 custom-scroll">
+                                            {PREDEFINED_ROUTES.filter(r => r.name.toLowerCase().includes(newRoute.toLowerCase())).map((route, idx) => (
+                                                <li 
+                                                    key={idx} 
+                                                    onMouseDown={() => handlePredefinedRouteSelect(route)}
+                                                    className="p-3 hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0 flex justify-between items-center"
+                                                >
+                                                    <span className="text-sm font-bold text-slate-700">{route.name}</span>
+                                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">{route.dist.toString().replace('.', ',')} km</span>
+                                                </li>
+                                            ))}
+                                            {PREDEFINED_ROUTES.filter(r => r.name.toLowerCase().includes(newRoute.toLowerCase())).length === 0 && (
+                                                <li className="p-3 text-xs text-slate-400 text-center">Nenhum trajeto encontrado</li>
+                                            )}
+                                        </ul>
+                                    )}
+                                </div>
+
                                 <div className="relative"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Distância (KM)</label><div className="flex gap-2"><input type="number" step="0.1" required value={newDistance} onChange={(e) => setNewDistance(e.target.value)} className="w-full border rounded-lg p-2.5" /><button type="button" onClick={() => setShowMap(true)} className="bg-blue-100 text-blue-600 p-2.5 rounded-lg hover:bg-blue-200"><MapIcon size={20} /></button></div></div>
                                 <button type="submit" className="md:col-span-4 bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700">Registrar Viagem</button>
                             </form>
