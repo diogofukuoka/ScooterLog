@@ -368,11 +368,12 @@
             };
 
             // --- SELEÇÃO DE ROTA PREDEFINIDA ---
-            const handlePredefinedRouteSelect = (route) => {
-                setNewRoute(route.name);
-                setNewDistance(route.dist.toString().replace('.', ','));
-                setShowRouteList(false);
-            };
+const handlePredefinedRouteSelect = (route) => {
+    setNewRoute(route.name);
+    // ALTERAÇÃO AQUI: Passamos o número direto, sem converter para string com vírgula
+    setNewDistance(route.dist); 
+    setShowRouteList(false);
+};
 
             useEffect(() => {
                 if (showMap && !mapRef.current) {
@@ -666,3 +667,4 @@
     </script>
 </body>
 </html>
+
