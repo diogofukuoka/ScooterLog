@@ -253,6 +253,16 @@
 
             useEffect(() => { pickingModeRef.current = pickingMode; }, [pickingMode]);
 
+            // --- GARANTIR QUE A ORIGEM SEJA O ÚLTIMO DESTINO AO ABRIR O MAPA ---
+            useEffect(() => {
+                if (showMap) {
+                    const savedLast = localStorage.getItem('scooter_last_dest');
+                    if (savedLast) {
+                        setAddrOrigin(savedLast);
+                    }
+                }
+            }, [showMap]);
+
             // --- FECHAR LISTA DE ROTAS AO CLICAR FORA ---
             useEffect(() => {
                 const handleClickOutside = (event) => {
@@ -495,6 +505,25 @@
                 setTrips(updatedTrips);
                 localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
                 syncWithGithub(updatedTrips);
+
+                // --- ATUALIZAÇÃO INTELIGENTE DA ORIGEM ---
+                // Se o usuário registrou uma viagem (ex: "Casa/Curióla/CHC"), 
+                // tentamos pegar o último local ("CHC") e definir como a próxima origem.
+                if (newRoute) {
+                    const parts = newRoute.split('/');
+                    const lastLocationName = parts[parts.length - 1].trim();
+                    
+                    // Procura o endereço na lista de locais salvos
+                    const foundLocation = SAVED_LOCATIONS.find(loc => 
+                        loc.name.toLowerCase() === lastLocationName.toLowerCase()
+                    );
+
+                    if (foundLocation) {
+                        localStorage.setItem('scooter_last_dest', foundLocation.address);
+                        setAddrOrigin(foundLocation.address); 
+                    }
+                }
+
                 setNewRoute(''); setNewDistance('');
             };
 
