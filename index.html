@@ -65,6 +65,7 @@
         const Crosshair = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></IconBase>;
         const ArrowUpDown = (props) => <IconBase {...props}><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></IconBase>;
         const SettingsIcon = (props) => <IconBase {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></IconBase>;
+        const Copy = (props) => <IconBase {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></IconBase>;
 
         const SAVED_LOCATIONS = [
             { name: 'Casa', address: 'R. Guilherme Lunardon, 300 - Pilarzinho, Curitiba - PR, 82110-240' },
@@ -227,13 +228,19 @@
             const [showMap, setShowMap] = useState(false);
             const [mapDistance, setMapDistance] = useState(0);
             
-            // --- MODIFICAÇÃO: Inicializa Origem com o último destino salvo no LocalStorage ---
+            // Inicializa Origem com o último destino salvo no LocalStorage
             const [addrOrigin, setAddrOrigin] = useState(localStorage.getItem('scooter_last_dest') || '');
             const [addrDest, setAddrDest] = useState('');
             const [isSearching, setIsSearching] = useState(false);
             
             const [pickingMode, setPickingMode] = useState(null);
             const [showSettings, setShowSettings] = useState(false);
+            
+            // --- ESTADOS PARA DUPLICAÇÃO ---
+            const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+            const [tripToDuplicate, setTripToDuplicate] = useState(null);
+            const [dateForDuplication, setDateForDuplication] = useState('');
+
             const [syncConfig, setSyncConfig] = useState({
                 token: localStorage.getItem('gh_token') || '',
                 gistId: localStorage.getItem('gh_gist_id') || ''
@@ -435,7 +442,7 @@
                 
                 setNewRoute(`${formatName(nameOrigin)} / ${formatName(nameDest)}`);
                 
-                // --- MODIFICAÇÃO: Salva o destino atual como a origem da próxima viagem ---
+                // Salva o destino atual como a origem da próxima viagem
                 localStorage.setItem('scooter_last_dest', addrDest);
                 
                 // Fecha o mapa, mas atualiza o estado para a próxima vez
@@ -454,7 +461,7 @@
                 if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
                 setMapDistance(0); 
                 
-                // --- MODIFICAÇÃO: Ao cancelar/fechar, restaura a origem salva (não limpa tudo) ---
+                // Ao cancelar/fechar, restaura a origem salva (não limpa tudo)
                 setAddrOrigin(localStorage.getItem('scooter_last_dest') || '');
                 setAddrDest(''); 
                 setPickingMode(null);
@@ -498,6 +505,32 @@
                 syncWithGithub(updatedTrips);
             };
 
+            // --- FUNÇÕES DE DUPLICAÇÃO ---
+            const openDuplicateModal = (trip) => {
+                setTripToDuplicate(trip);
+                setDateForDuplication(new Date().toISOString().split('T')[0]); // Padrão: Hoje
+                setDuplicateModalOpen(true);
+            };
+
+            const confirmDuplicate = () => {
+                if (!tripToDuplicate || !dateForDuplication) return;
+                
+                const newTrip = {
+                    id: Date.now(),
+                    date: dateForDuplication,
+                    distance: tripToDuplicate.distance,
+                    route: tripToDuplicate.route
+                };
+
+                const updatedTrips = [newTrip, ...trips];
+                setTrips(updatedTrips);
+                localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
+                syncWithGithub(updatedTrips);
+                
+                setDuplicateModalOpen(false);
+                setTripToDuplicate(null);
+            };
+
             const totalKm = trips.reduce((acc, curr) => acc + curr.distance, 0);
             const totalCost = trips.reduce((acc, curr) => acc + parseFloat(calculateMetrics(curr.distance).value.replace(',', '.')), 0);
             const totalPercentRaw = (totalKm / AUTONOMIA) * 100;
@@ -524,6 +557,36 @@
 
             return (
                 <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8 pb-20">
+                    
+                    {/* MODAL DE DUPLICAÇÃO */}
+                    {duplicateModalOpen && tripToDuplicate && (
+                        <div className="fixed inset-0 z-[150] bg-black/60 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+                                <h3 className="font-bold text-lg text-slate-700 mb-2 flex items-center gap-2">
+                                    <Copy size={20} className="text-blue-500" /> Duplicar Viagem
+                                </h3>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Trajeto: <span className="font-bold text-slate-700">{tripToDuplicate.route}</span>
+                                </p>
+                                
+                                <div className="mb-4">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nova Data</label>
+                                    <input 
+                                        type="date" 
+                                        value={dateForDuplication} 
+                                        onChange={(e) => setDateForDuplication(e.target.value)} 
+                                        className="w-full bg-slate-50 border rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500" 
+                                    />
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button onClick={() => setDuplicateModalOpen(false)} className="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-50">Cancelar</button>
+                                    <button onClick={confirmDuplicate} className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md">Confirmar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {showMap && (
                         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh]">
@@ -703,13 +766,22 @@
                                                         <span className="flex items-center gap-1"><Clock size={14} /> {metrics.time}h</span>
                                                     </div>
                                                 </div>
-                                                <button 
-                                                    onClick={() => handleDeleteTrip(trip.id)}
-                                                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors self-end sm:self-center"
-                                                    title="Excluir viagem"
-                                                >
-                                                    <Trash2 size={20} />
-                                                </button>
+                                                <div className="flex gap-2 self-end sm:self-center">
+                                                    <button 
+                                                        onClick={() => openDuplicateModal(trip)}
+                                                        className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                                                        title="Duplicar viagem"
+                                                    >
+                                                        <Copy size={20} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDeleteTrip(trip.id)}
+                                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                        title="Excluir viagem"
+                                                    >
+                                                        <Trash2 size={20} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         );
                                     })}
