@@ -72,6 +72,7 @@
             { name: 'CHC', address: 'R. Gen. Carneiro, 181 - Alto da Glória, Curitiba - PR, 80060-900' },
             { name: 'Condor Pilarzinho', address: 'R. Amauri Lange Silvério, 1130 - Pilarzinho, Curitiba - PR, 82120-000' },
             { name: 'Condor Nilo Peçanha', address: 'R. Nilo Peçanha, 1000 - São Francisco, Curitiba - PR, 80520-000' },
+            { name: 'Sacolão', address: 'R. Raposo Tavares, 528 - Pilarzinho, Curitiba - PR, 82100-452' },
             { name: 'Carrefour Cabral', address: 'Av. Paraná, 1250 - Cabral, Curitiba - PR, 80035-130' },
             { name: 'Frigorífico Príncipe', address: 'R. Justo Manfron, 870 - Santa Felicidade, Curitiba - PR, 82410-540' },
             { name: 'Casa da tia', address: 'Rua Angelina Braga Cortezzi, 1166 - Santa Felicidade, Curitiba - PR, 82410-220' },         
@@ -96,23 +97,26 @@
             { dist: 14.5, name: 'Casa/CHC/Casa' },
             { dist: 14.5, name: 'CHC/Casa/CHC' },
             { dist: 9.4, name: 'CHC/Casa/Curióla/Casa' },
-            { dist: 10.8, name: 'CHC/Carrefour Cabral/Casa' },
-            { dist: 5.8, name: 'Casa/Tia' },
-            { dist: 5.8, name: 'Tia/Casa' },
-            { dist: 11.6, name: 'Casa/Tia/Casa' },
             { dist: 1.2, name: 'Casa/Condor Pilarzinho' },
             { dist: 1.2, name: 'Condor Pilarzinho/Casa' },
-            { dist: 2.4, name: 'Casa/Condor Pilarzinho/Casa' },       
-            { dist: 4.1, name: 'Casa/Condor Nilo Peçanha' },
-            { dist: 6.0, name: 'Condor Nilo Peçanha/Casa' },
-            { dist: 10.1, name: 'Casa/Condor Nilo Peçanha/Casa' },           
+            { dist: 2.4, name: 'Casa/Condor Pilarzinho/Casa' }, 
+            { dist: 1.1, name: 'Casa/Sacolão' },
+            { dist: 1.1, name: 'Sacolão/Casa' },
+            { dist: 2.2, name: 'Casa/Sacolão/Casa' }, 
             { dist: 1.2, name: 'Casa/Cabelo' },
             { dist: 1.2, name: 'Cabelo/Casa' },
             { dist: 2.4, name: 'Casa/Cabelo/Casa' },
+            { dist: 10.8, name: 'CHC/Carrefour Cabral/Casa' },
+            { dist: 5.8, name: 'Casa/Tia' },
+            { dist: 5.8, name: 'Tia/Casa' },
             { dist: 6.2, name: 'Casa/Caldo de cana/Casa' },
+            { dist: 11.6, name: 'Casa/Tia/Casa' },
             { dist: 3.9, name: 'Casa/Frigorífigo' },
             { dist: 3.9, name: 'Frigorífigo/Casa' },
             { dist: 7.8, name: 'Casa/Frigorífigo/Casa' }
+            { dist: 4.1, name: 'Casa/Condor Nilo Peçanha' },
+            { dist: 6.0, name: 'Condor Nilo Peçanha/Casa' },
+            { dist: 10.1, name: 'Casa/Condor Nilo Peçanha/Casa' }, 
         ];
 
         const LocationInput = ({ label, value, onChange, placeholder, onPickMap, isPicking }) => {
@@ -699,6 +703,7 @@
     </script>
 </body>
 </html>
+
 
 
 
