@@ -369,12 +369,11 @@
             };
 
             // --- SELEÇÃO DE ROTA PREDEFINIDA ---
-const handlePredefinedRouteSelect = (route) => {
-    setNewRoute(route.name);
-    // ALTERAÇÃO AQUI: Passamos o número direto, sem converter para string com vírgula
-    setNewDistance(route.dist); 
-    setShowRouteList(false);
-};
+            const handlePredefinedRouteSelect = (route) => {
+                setNewRoute(route.name);
+                setNewDistance(route.dist); 
+                setShowRouteList(false);
+            };
 
             useEffect(() => {
                 if (showMap && !mapRef.current) {
@@ -470,6 +469,21 @@ const handlePredefinedRouteSelect = (route) => {
             const totalChargeHours = Math.floor(totalChargeMinutes / 60);
             const totalChargeMins = totalChargeMinutes % 60;
             const totalChargeStr = `${String(totalChargeHours).padStart(2, '0')}:${String(totalChargeMins).padStart(2, '0')}`;
+
+            // --- LÓGICA DE CORES DA BATERIA ---
+            let batteryBgClass = "bg-white";
+            let batteryTextClass = "text-slate-700";
+            let batteryLabelClass = "text-slate-400";
+
+            if (totalPercentRaw < 21) {
+                batteryBgClass = "bg-red-100";
+                batteryTextClass = "text-red-800";
+                batteryLabelClass = "text-red-600";
+            } else if (totalPercentRaw >= 50) {
+                batteryBgClass = "bg-red-700";
+                batteryTextClass = "text-white";
+                batteryLabelClass = "text-red-200";
+            }
 
             return (
                 <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8 pb-20">
@@ -579,7 +593,13 @@ const handlePredefinedRouteSelect = (route) => {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="bg-white p-4 rounded-xl shadow-sm border text-center"><div className="text-xs text-slate-400 font-bold uppercase">Custo</div><div className="text-xl font-bold text-emerald-600">R$ {totalCost.toFixed(2).replace('.', ',')}</div></div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border text-center"><div className="text-xs text-slate-400 font-bold uppercase">KM</div><div className="text-xl font-bold text-blue-600">{totalKm.toFixed(1)} km</div></div>
-                            <div className="bg-white p-4 rounded-xl shadow-sm border text-center"><div className="text-xs text-slate-400 font-bold uppercase">Bateria</div><div className="text-xl font-bold text-slate-700">{totalPercentStr}%</div></div>
+                            
+                            {/* CARD BATERIA COM COR DINÂMICA */}
+                            <div className={`${batteryBgClass} p-4 rounded-xl shadow-sm border text-center transition-colors duration-300`}>
+                                <div className={`text-xs ${batteryLabelClass} font-bold uppercase`}>Bateria</div>
+                                <div className={`text-xl font-bold ${batteryTextClass}`}>{totalPercentStr}%</div>
+                            </div>
+
                             <div className="bg-white p-4 rounded-xl shadow-sm border text-center"><div className="text-xs text-slate-400 font-bold uppercase">Carga</div><div className="text-xl font-bold text-amber-600">{totalChargeStr}</div></div>
                         </div>
                         
@@ -668,5 +688,3 @@ const handlePredefinedRouteSelect = (route) => {
     </script>
 </body>
 </html>
-
-
