@@ -226,7 +226,9 @@
             
             const [showMap, setShowMap] = useState(false);
             const [mapDistance, setMapDistance] = useState(0);
-            const [addrOrigin, setAddrOrigin] = useState('');
+            
+            // --- MODIFICAÇÃO: Inicializa Origem com o último destino salvo no LocalStorage ---
+            const [addrOrigin, setAddrOrigin] = useState(localStorage.getItem('scooter_last_dest') || '');
             const [addrDest, setAddrDest] = useState('');
             const [isSearching, setIsSearching] = useState(false);
             
@@ -379,6 +381,8 @@
                 if (window.confirm("ATENÇÃO: Tem certeza que deseja apagar TODOS os registros de viagem? Essa ação não pode ser desfeita.")) {
                     setTrips([]);
                     localStorage.setItem('scooter_trips', '[]');
+                    localStorage.removeItem('scooter_last_dest'); // Limpa também o último destino
+                    setAddrOrigin('');
                     syncWithGithub([]);
                     setShowSettings(false);
                 }
@@ -430,13 +434,30 @@
                 const formatName = (name) => name.length > 25 ? name.substring(0, 25) + '...' : name;
                 
                 setNewRoute(`${formatName(nameOrigin)} / ${formatName(nameDest)}`);
-                closeMap();
+                
+                // --- MODIFICAÇÃO: Salva o destino atual como a origem da próxima viagem ---
+                localStorage.setItem('scooter_last_dest', addrDest);
+                
+                // Fecha o mapa, mas atualiza o estado para a próxima vez
+                setShowMap(false);
+                if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+                setMapDistance(0);
+                
+                // Define a origem como o destino que acabamos de confirmar
+                setAddrOrigin(addrDest);
+                setAddrDest(''); // Limpa o destino
+                setPickingMode(null);
             };
 
             const closeMap = () => {
                 setShowMap(false);
                 if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
-                setMapDistance(0); setAddrOrigin(''); setAddrDest(''); setPickingMode(null);
+                setMapDistance(0); 
+                
+                // --- MODIFICAÇÃO: Ao cancelar/fechar, restaura a origem salva (não limpa tudo) ---
+                setAddrOrigin(localStorage.getItem('scooter_last_dest') || '');
+                setAddrDest(''); 
+                setPickingMode(null);
             };
 
             const calculateMetrics = (distance) => {
@@ -704,9 +725,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
