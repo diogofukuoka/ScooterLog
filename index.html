@@ -86,7 +86,9 @@
             { name: 'Papelaria Pilarzinho', address: 'R. Raposo Tavares, 1165 - Pilarzinho, Curitiba - PR, 82100-452' },
             { name: 'Parque Tinguí', address: 'Rua Melchiades Silveira do Valle, 1094 - São João, Curitiba - PR, 82030-600' },
             { name: 'Parque Tanguá', address: 'R. Margarida de Contogava, 211 - Pilarzinho' },
-            { name: 'Parque São Lourenço', address: 'R. Prof. Nilo Brandão, 668 - São Lourenço' }
+            { name: 'Parque São Lourenço', address: 'R. Prof. Nilo Brandão, 668 - São Lourenço' },
+            { name: 'Marco', address: 'R. Rio Nhundiaquara, 534 - Iguaçu, Fazenda Rio Grande - PR, 83833-515' },
+            { name: 'Salão', address: 'R. Arcésio de Barros Lima, 916 - Tatuquara, Curitiba - PR, 81480-246' }
         ];
 
         const PREDEFINED_ROUTES = [
@@ -118,7 +120,13 @@
             { dist: 7.8, name: 'Casa/Frigorífigo/Casa' },
             { dist: 4.1, name: 'Casa/Condor Nilo Peçanha' },
             { dist: 6.0, name: 'Condor Nilo Peçanha/Casa' },
-            { dist: 10.1, name: 'Casa/Condor Nilo Peçanha/Casa' } 
+            { dist: 10.1, name: 'Casa/Condor Nilo Peçanha/Casa' }, 
+            { dist: 26.1, name: 'Casa/Salão' }, 
+            { dist: 25.3, name: 'Salão/Casa' }, 
+            { dist: 51.4, name: 'Casa/Salão/Casa' },
+            { dist: 37.6, name: 'Casa/Marco' }, 
+            { dist: 37.9, name: 'Marco/Casa' }, 
+            { dist: 75.5, name: 'Casa/Marco/Casa' },
         ];
 
         const LocationInput = ({ label, value, onChange, placeholder, onPickMap, isPicking }) => {
@@ -826,3 +834,4 @@
     </script>
 </body>
 </html>
+
