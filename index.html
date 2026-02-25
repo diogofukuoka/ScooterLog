@@ -282,7 +282,7 @@
             const[trips, setTrips] = useState([]);
             const[newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
             const[newDistance, setNewDistance] = useState('');
-            const [newRoute, setNewRoute] = useState('');
+            const[newRoute, setNewRoute] = useState('');
 
             // --- ESTADOS DE SIMULAÇÃO ---
             const[simulatedTrips, setSimulatedTrips] = useState([]);
@@ -290,7 +290,7 @@
             const[simDistance, setSimDistance] = useState('');
             const[simRoute, setSimRoute] = useState('');
 
-            const [showRouteList, setShowRouteList] = useState(false);
+            const[showRouteList, setShowRouteList] = useState(false);
             
             // --- ESTADOS DO MAPA ---
             const[showMap, setShowMap] = useState(false);
@@ -314,7 +314,7 @@
             });
             
             const mapRef = useRef(null);
-            const mapContainerRef = useRef(null); // NOVA REFERÊNCIA PARA A DIV DO MAPA
+            const mapContainerRef = useRef(null);
             const routingControlRef = useRef(null);
             const pickingModeRef = useRef(null);
             const routeInputRef = useRef(null);
@@ -395,77 +395,78 @@
 
             // --- CORREÇÃO DEFINITIVA DO MAPA ---
             useEffect(() => {
-                let mapInstance = null;
-                let resizeInterval = null;
-                let initTimer = null;
+                if (!showMap) return;
 
-                const handleResize = () => {
-                    if (mapRef.current) {
-                        mapRef.current.invalidateSize();
+                let mapInstance = null;
+                let resizeObserver = null;
+                let initTimeout = null;
+
+                const initializeLeaflet = () => {
+                    const container = mapContainerRef.current;
+                    if (!container) return;
+
+                    // O SEGREDO: Aguarda ativamente até que a div tenha largura e altura reais
+                    // Isso previne que o Leaflet inicialize em uma div 0x0 durante a animação do modal
+                    if (container.clientWidth === 0 || container.clientHeight === 0) {
+                        initTimeout = setTimeout(initializeLeaflet, 50);
+                        return;
+                    }
+
+                    // Limpa qualquer instância anterior presa na div
+                    if (container._leaflet_id) {
+                        container._leaflet_id = null;
+                    }
+
+                    mapInstance = L.map(container).setView([-25.4284, -49.2733], 13);
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+                        attribution: '© OpenStreetMap',
+                        maxZoom: 19
+                    }).addTo(mapInstance);
+                    
+                    mapInstance.on('click', async (e) => {
+                        const mode = pickingModeRef.current;
+                        if (mode) {
+                            const lat = e.latlng.lat;
+                            const lng = e.latlng.lng;
+                            
+                            L.marker(e.latlng).addTo(mapInstance).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
+                            
+                            if (mode === 'origin') setAddrOrigin("Buscando endereço...");
+                            else if (mode === 'dest') setAddrDest("Buscando endereço...");
+
+                            const address = await reverseGeocode(lat, lng);
+
+                            if (mode === 'origin') setAddrOrigin(address);
+                            else if (mode === 'dest') setAddrDest(address);
+                            
+                            setPickingMode(null);
+                        }
+                    });
+
+                    mapRef.current = mapInstance;
+
+                    // Força o recálculo do tamanho imediatamente após criar
+                    mapInstance.invalidateSize();
+
+                    // Observador de redimensionamento contínuo para manter o mapa ajustado
+                    if (window.ResizeObserver) {
+                        resizeObserver = new ResizeObserver(() => {
+                            if (mapRef.current) {
+                                mapRef.current.invalidateSize();
+                            }
+                        });
+                        resizeObserver.observe(container);
                     }
                 };
 
-                if (showMap) {
-                    // Espera 150ms para garantir que o React montou a div e o Flexbox calculou o layout
-                    initTimer = setTimeout(() => {
-                        if (!mapContainerRef.current) return;
-
-                        // Limpa qualquer instância anterior presa na div
-                        if (mapContainerRef.current._leaflet_id) {
-                            mapContainerRef.current._leaflet_id = null;
-                        }
-
-                        // Inicializa o mapa usando a referência direta da div
-                        mapInstance = L.map(mapContainerRef.current).setView([-25.4284, -49.2733], 13);
-                        
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-                            attribution: '© OpenStreetMap',
-                            maxZoom: 19
-                        }).addTo(mapInstance);
-                        
-                        mapInstance.on('click', async (e) => {
-                            const mode = pickingModeRef.current;
-                            if (mode) {
-                                const lat = e.latlng.lat;
-                                const lng = e.latlng.lng;
-                                
-                                L.marker(e.latlng).addTo(mapInstance).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
-                                
-                                if (mode === 'origin') setAddrOrigin("Buscando endereço...");
-                                else if (mode === 'dest') setAddrDest("Buscando endereço...");
-
-                                const address = await reverseGeocode(lat, lng);
-
-                                if (mode === 'origin') setAddrOrigin(address);
-                                else if (mode === 'dest') setAddrDest(address);
-                                
-                                setPickingMode(null);
-                            }
-                        });
-
-                        mapRef.current = mapInstance;
-
-                        // Força o recálculo do tamanho repetidas vezes durante os primeiros 2 segundos
-                        handleResize();
-                        let ticks = 0;
-                        resizeInterval = setInterval(() => {
-                            handleResize();
-                            ticks++;
-                            if (ticks > 20) clearInterval(resizeInterval);
-                        }, 100);
-
-                        // Adiciona listener para redimensionamento da janela
-                        window.addEventListener('resize', handleResize);
-
-                    }, 150);
-                }
+                // Inicia o processo de verificação e inicialização
+                initializeLeaflet();
 
                 // Limpeza ao fechar o modal
                 return () => {
-                    if (initTimer) clearTimeout(initTimer);
-                    if (resizeInterval) clearInterval(resizeInterval);
-                    window.removeEventListener('resize', handleResize);
-                    
+                    if (initTimeout) clearTimeout(initTimeout);
+                    if (resizeObserver) resizeObserver.disconnect();
                     if (mapInstance) {
                         mapInstance.remove();
                     }
