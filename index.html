@@ -25,8 +25,8 @@
 
     <style>
         body { -webkit-tap-highlight-color: transparent; }
-        /* CSS do mapa ajustado para preenchimento absoluto e garantido */
-        #map-container { width: 100%; height: 100%; min-height: 300px; z-index: 1; background: #e2e8f0; }
+        /* CORREÇÃO: Posicionamento absoluto garante que o mapa preencha o pai flexbox imediatamente */
+        #map-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; background: #e2e8f0; }
         .leaflet-routing-container { display: none !important; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid currentColor; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -200,8 +200,6 @@
                 }
             },[value]);
 
-            // CORREÇÃO: O código do mapa que estava aqui foi removido, pois ele já existe corretamente no componente App.
-            // Aqui mantemos apenas o listener para fechar a lista ao clicar fora.
             useEffect(() => {
                 const handleClickOutside = (event) => {
                     if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -403,7 +401,7 @@
                 let timeouts =[];
 
                 if (showMap) {
-                    // Pequeno delay para garantir que a div do modal foi renderizada pelo React
+                    // Aumentei levemente o delay inicial para garantir que o modal e o flexbox terminaram de calcular o layout
                     const initTimer = setTimeout(() => {
                         const container = document.getElementById('map-container');
                         if (!container) return;
@@ -442,13 +440,17 @@
 
                         mapRef.current = mapInstance;
 
-                        // Força a atualização do tamanho do mapa repetidas vezes durante a animação de abertura do modal
+                        // Função para forçar o Leaflet a recalcular seu tamanho
                         const invalidate = () => {
                             if (mapRef.current) {
                                 mapRef.current.invalidateSize();
                             }
                         };
                         
+                        // Invalida imediatamente após criar
+                        invalidate();
+                        
+                        // E continua invalidando por um tempo para cobrir qualquer animação ou atraso de renderização do navegador
                         timeouts.push(setTimeout(invalidate, 100));
                         timeouts.push(setTimeout(invalidate, 300));
                         timeouts.push(setTimeout(invalidate, 500));
@@ -462,7 +464,7 @@
                             resizeObserver.observe(container);
                         }
 
-                    }, 50);
+                    }, 100); // Delay de 100ms
                     
                     timeouts.push(initTimer);
                 }
