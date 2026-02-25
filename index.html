@@ -1096,8 +1096,9 @@
                                                                 - {dayOfWeekStr}
                                                             </span>
                                                         </span>
-                                                        <span className="flex items-center gap-1"><MapPin size={12} /> {trip.distance}</span>
-                                                        <span className="flex items-center gap-1"><Battery size={12} /> {metrics.percent}%</span>
+                                                        <span className="flex items-center gap-1" title="Distância"><MapPin size={12} /> {trip.distance}</span>
+                                                        <span className="flex items-center gap-1" title="Tempo Estimado"><Clock size={12} /> {metrics.time}</span>
+                                                        <span className="flex items-center gap-1" title="Bateria"><Battery size={12} /> {metrics.percent}%</span>
                                                     </div>
 
                                                     <div className="flex gap-2">
