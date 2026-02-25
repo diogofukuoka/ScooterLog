@@ -26,7 +26,7 @@
     <style>
         body { -webkit-tap-highlight-color: transparent; }
         /* CSS do mapa ajustado para preenchimento absoluto e garantido */
-        #map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #e2e8f0; }
+        #map-container { width: 100%; height: 100%; min-height: 300px; z-index: 1; background: #e2e8f0; }
         .leaflet-routing-container { display: none !important; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid currentColor; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -200,12 +200,60 @@
                 }
             },[value]);
 
+           // --- INICIALIZAÇÃO E CORREÇÃO DEFINITIVA DO MAPA ---
             useEffect(() => {
-                const handleClickOutside = (event) => {
-                    if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-                        setShowList(false);
-                    }
-                };
+                if (showMap) {
+                    // Aguarda o modal ser inserido no DOM
+                    const initTimer = setTimeout(() => {
+                        const container = document.getElementById('map-container');
+                        if (!container || mapRef.current) return;
+
+                        // Inicializa o mapa
+                        const map = L.map('map-container').setView([-25.4284, -49.2733], 13);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+                            attribution: '© OpenStreetMap',
+                            maxZoom: 19
+                        }).addTo(map);
+                        
+                        map.on('click', async (e) => {
+                            const mode = pickingModeRef.current;
+                            if (mode) {
+                                const lat = e.latlng.lat;
+                                const lng = e.latlng.lng;
+                                
+                                L.marker(e.latlng).addTo(map).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
+                                
+                                if (mode === 'origin') setAddrOrigin("Buscando endereço...");
+                                else if (mode === 'dest') setAddrDest("Buscando endereço...");
+
+                                const address = await reverseGeocode(lat, lng);
+
+                                if (mode === 'origin') setAddrOrigin(address);
+                                else if (mode === 'dest') setAddrDest(address);
+                                
+                                setPickingMode(null);
+                            }
+                        });
+
+                        mapRef.current = map;
+
+                        // O SEGREDO PARA RESOLVER A TELA CINZA:
+                        // Forçar a atualização do tamanho do mapa várias vezes durante o primeiro segundo.
+                        // Isso garante que o Leaflet pegue as dimensões exatas após qualquer animação do modal.
+                        let count = 0;
+                        const fixMapSize = setInterval(() => {
+                            if (mapRef.current) {
+                                mapRef.current.invalidateSize(true);
+                            }
+                            count++;
+                            if (count > 15) clearInterval(fixMapSize); // Para após 1.5 segundos
+                        }, 100);
+
+                    }, 150); // Delay inicial para garantir que o modal abriu
+
+                    return () => clearTimeout(initTimer);
+                }
+            },[showMap]);
                 document.addEventListener("mousedown", handleClickOutside);
                 return () => document.removeEventListener("mousedown", handleClickOutside);
             },[]);
@@ -826,7 +874,7 @@
                                     </button>
                                 </div>
 
-                                <div className={`relative flex-grow w-full bg-slate-200 overflow-hidden min-h-0 ${pickingMode ? 'cursor-crosshair' : ''}`}>
+                                <div className={`relative flex-grow w-full bg-slate-200 overflow-hidden min-h-[300px] ${pickingMode ? 'cursor-crosshair' : ''}`}>
                                     {pickingMode && (
                                         <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold animate-bounce flex items-center gap-2 whitespace-nowrap pointer-events-none ${mapContext === 'official' ? 'bg-emerald-600' : 'bg-blue-600'}`}>
                                             <MapPin size={16} />
@@ -1090,3 +1138,4 @@
     </script>
 </body>
 </html>
+
