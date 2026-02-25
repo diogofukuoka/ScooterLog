@@ -40,6 +40,14 @@
         .cursor-crosshair { cursor: crosshair !important; }
         .cursor-crosshair .leaflet-container { cursor: crosshair !important; }
         .cursor-crosshair .leaflet-interactive { cursor: crosshair !important; }
+        
+        /* Estilo customizado para o checkbox */
+        .custom-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #2563eb; /* Azul do Tailwind */
+        }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -573,7 +581,7 @@
 
             const handleCopyOfficialToSimulation = () => {
                 if (window.confirm("Deseja copiar todos os trajetos oficiais para a simulação? Isso substituirá os dados simulados atuais.")) {
-                    const copiedTrips = trips.map((t, index) => ({ ...t, id: Date.now() + index }));
+                    const copiedTrips = trips.map((t, index) => ({ ...t, id: Date.now() + index, active: true }));
                     setSimulatedTrips(copiedTrips);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(copiedTrips));
                     syncWithGithub(trips, copiedTrips);
@@ -665,7 +673,7 @@
                 } else {
                     if (!simDistance || !simRoute) return;
                     const distValue = parseFloat(simDistance.toString().replace(',', '.'));
-                    const updatedSims =[{ id: Date.now(), date: simDate, distance: distValue, route: simRoute }, ...simulatedTrips];
+                    const updatedSims =[{ id: Date.now(), date: simDate, distance: distValue, route: simRoute, active: true }, ...simulatedTrips];
                     setSimulatedTrips(updatedSims);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
                     syncWithGithub(trips, updatedSims);
@@ -687,6 +695,15 @@
                 }
             };
 
+            const handleToggleTrip = (id) => {
+                const updatedSims = simulatedTrips.map(trip => 
+                    trip.id === id ? { ...trip, active: trip.active === undefined ? false : !trip.active } : trip
+                );
+                setSimulatedTrips(updatedSims);
+                localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
+                syncWithGithub(trips, updatedSims);
+            };
+
             const openDuplicateModal = (trip) => {
                 setTripToDuplicate(trip);
                 setDateForDuplication(new Date().toISOString().split('T')[0]);
@@ -700,7 +717,8 @@
                     id: Date.now(),
                     date: dateForDuplication,
                     distance: tripToDuplicate.distance,
-                    route: tripToDuplicate.route
+                    route: tripToDuplicate.route,
+                    active: true
                 };
 
                 if (activeTab === 'official') {
@@ -723,8 +741,13 @@
             const currentTrips = activeTab === 'official' ? trips : simulatedTrips;
             const currentRouteInput = activeTab === 'official' ? newRoute : simRoute;
             
-            const totalKm = currentTrips.reduce((acc, curr) => acc + curr.distance, 0);
-            const totalCost = currentTrips.reduce((acc, curr) => acc + parseFloat(calculateMetrics(curr.distance).value.replace(',', '.')), 0);
+            // Filtra viagens para cálculo (apenas na simulação considera o checkbox)
+            const tripsToCalculate = activeTab === 'official' 
+                ? trips 
+                : simulatedTrips.filter(t => t.active !== false); // Default true se undefined
+
+            const totalKm = tripsToCalculate.reduce((acc, curr) => acc + curr.distance, 0);
+            const totalCost = tripsToCalculate.reduce((acc, curr) => acc + parseFloat(calculateMetrics(curr.distance).value.replace(',', '.')), 0);
             const totalPercentRaw = (totalKm / AUTONOMIA) * 100;
             const totalPercentStr = totalPercentRaw.toFixed(2).replace('.', ',');
             const totalChargeMinutes = Math.ceil(totalPercentRaw * TEMPO_CARGA_POR_1_PORCENTO);
@@ -1040,9 +1063,25 @@
                                         const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
                                         const isHoliday = checkIsHoliday(trip.date);
                                         const isRed = isWeekend || isHoliday;
+                                        
+                                        // Verifica se está ativo (para simulação)
+                                        const isActive = trip.active !== false; // Default true
 
                                         return (
-                                            <div key={trip.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                            <div key={trip.id} className={`bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-opacity duration-300 ${!isActive && activeTab === 'simulation' ? 'opacity-50' : 'opacity-100'}`}>
+                                                
+                                                {/* CHECKBOX APENAS NA SIMULAÇÃO */}
+                                                {activeTab === 'simulation' && (
+                                                    <div className="flex items-center justify-center pr-2">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={isActive} 
+                                                            onChange={() => handleToggleTrip(trip.id)}
+                                                            className="custom-checkbox"
+                                                        />
+                                                    </div>
+                                                )}
+
                                                 <div className="flex-grow">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <span className={`text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 ${activeTab === 'official' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
