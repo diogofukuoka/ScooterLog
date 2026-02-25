@@ -25,8 +25,6 @@
 
     <style>
         body { -webkit-tap-highlight-color: transparent; }
-        /* CORREÇÃO: Posicionamento absoluto garante que o mapa preencha o pai flexbox imediatamente */
-        #map-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; background: #e2e8f0; }
         .leaflet-routing-container { display: none !important; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid currentColor; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -316,6 +314,7 @@
             });
             
             const mapRef = useRef(null);
+            const mapContainerRef = useRef(null); // NOVA REFERÊNCIA PARA A DIV DO MAPA
             const routingControlRef = useRef(null);
             const pickingModeRef = useRef(null);
             const routeInputRef = useRef(null);
@@ -397,21 +396,27 @@
             // --- CORREÇÃO DEFINITIVA DO MAPA ---
             useEffect(() => {
                 let mapInstance = null;
-                let resizeObserver = null;
-                let timeouts =[];
+                let resizeInterval = null;
+                let initTimer = null;
+
+                const handleResize = () => {
+                    if (mapRef.current) {
+                        mapRef.current.invalidateSize();
+                    }
+                };
 
                 if (showMap) {
-                    // Aumentei levemente o delay inicial para garantir que o modal e o flexbox terminaram de calcular o layout
-                    const initTimer = setTimeout(() => {
-                        const container = document.getElementById('map-container');
-                        if (!container) return;
+                    // Espera 150ms para garantir que o React montou a div e o Flexbox calculou o layout
+                    initTimer = setTimeout(() => {
+                        if (!mapContainerRef.current) return;
 
-                        // Prevenção extra contra inicialização dupla do Leaflet
-                        if (container._leaflet_id) {
-                            container._leaflet_id = null;
+                        // Limpa qualquer instância anterior presa na div
+                        if (mapContainerRef.current._leaflet_id) {
+                            mapContainerRef.current._leaflet_id = null;
                         }
 
-                        mapInstance = L.map('map-container').setView([-25.4284, -49.2733], 13);
+                        // Inicializa o mapa usando a referência direta da div
+                        mapInstance = L.map(mapContainerRef.current).setView([-25.4284, -49.2733], 13);
                         
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
                             attribution: '© OpenStreetMap',
@@ -440,44 +445,32 @@
 
                         mapRef.current = mapInstance;
 
-                        // Função para forçar o Leaflet a recalcular seu tamanho
-                        const invalidate = () => {
-                            if (mapRef.current) {
-                                mapRef.current.invalidateSize();
-                            }
-                        };
-                        
-                        // Invalida imediatamente após criar
-                        invalidate();
-                        
-                        // E continua invalidando por um tempo para cobrir qualquer animação ou atraso de renderização do navegador
-                        timeouts.push(setTimeout(invalidate, 100));
-                        timeouts.push(setTimeout(invalidate, 300));
-                        timeouts.push(setTimeout(invalidate, 500));
-                        timeouts.push(setTimeout(invalidate, 1000));
+                        // Força o recálculo do tamanho repetidas vezes durante os primeiros 2 segundos
+                        handleResize();
+                        let ticks = 0;
+                        resizeInterval = setInterval(() => {
+                            handleResize();
+                            ticks++;
+                            if (ticks > 20) clearInterval(resizeInterval);
+                        }, 100);
 
-                        // Observador de redimensionamento contínuo (Garante que o mapa sempre preencha a tela)
-                        if (window.ResizeObserver) {
-                            resizeObserver = new ResizeObserver(() => {
-                                window.requestAnimationFrame(invalidate);
-                            });
-                            resizeObserver.observe(container);
-                        }
+                        // Adiciona listener para redimensionamento da janela
+                        window.addEventListener('resize', handleResize);
 
-                    }, 100); // Delay de 100ms
-                    
-                    timeouts.push(initTimer);
+                    }, 150);
                 }
 
-                // Função de limpeza executada quando o modal fecha (showMap = false)
+                // Limpeza ao fechar o modal
                 return () => {
-                    timeouts.forEach(clearTimeout);
-                    if (resizeObserver) resizeObserver.disconnect();
-                    if (mapRef.current) {
-                        mapRef.current.remove();
-                        mapRef.current = null;
-                        routingControlRef.current = null;
+                    if (initTimer) clearTimeout(initTimer);
+                    if (resizeInterval) clearInterval(resizeInterval);
+                    window.removeEventListener('resize', handleResize);
+                    
+                    if (mapInstance) {
+                        mapInstance.remove();
                     }
+                    mapRef.current = null;
+                    routingControlRef.current = null;
                 };
             }, [showMap]);
 
@@ -546,6 +539,8 @@
                     createMarker: (i, wp) => L.marker(wp.latLng)
                 }).on('routesfound', (e) => {
                     setMapDistance((e.routes[0].summary.totalDistance / 1000).toFixed(1));
+                    // Força recálculo após a rota ser desenhada
+                    setTimeout(() => { if (mapRef.current) mapRef.current.invalidateSize(); }, 100);
                 }).addTo(map);
                 routingControlRef.current = control;
             };
@@ -838,7 +833,8 @@
                                         </div>
                                     )}
                                     
-                                    <div id="map-container"></div>
+                                    {/* AQUI ESTÁ A CORREÇÃO: Usando ref nativo do React e classes absolutas do Tailwind */}
+                                    <div ref={mapContainerRef} className="absolute inset-0 z-[1]"></div>
                                     
                                     {mapDistance > 0 && (
                                         <div className="absolute bottom-6 left-6 right-6 bg-white/95 p-4 rounded-lg shadow-lg border border-slate-200 flex justify-between items-center z-[1000]">
