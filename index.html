@@ -25,7 +25,8 @@
 
     <style>
         body { -webkit-tap-highlight-color: transparent; }
-        #map-container { width: 100%; height: 100%; z-index: 1; background: #e2e8f0; }
+        /* Correção do CSS do mapa para garantir que ele preencha o modal corretamente */
+        #map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #e2e8f0; }
         .leaflet-routing-container { display: none !important; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid currentColor; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -67,6 +68,57 @@
         const SettingsIcon = (props) => <IconBase {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></IconBase>;
         const Copy = (props) => <IconBase {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></IconBase>;
         const CalculatorIcon = (props) => <IconBase {...props}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><line x1="8" y1="10" x2="8" y2="10"></line><line x1="12" y1="10" x2="12" y2="10"></line><line x1="16" y1="10" x2="16" y2="10"></line><line x1="8" y1="14" x2="8" y2="14"></line><line x1="12" y1="14" x2="12" y2="14"></line><line x1="8" y1="18" x2="8" y2="18"></line><line x1="12" y1="18" x2="12" y2="18"></line></IconBase>;
+
+        // --- FUNÇÕES DE FERIADOS ---
+        const getMobileHolidays = (year) => {
+            const f = Math.floor,
+                G = year % 19,
+                C = f(year / 100),
+                H = (C - f(C / 4) - f((8 * C + 13) / 25) + 19 * G + 15) % 30,
+                I = H - f(H / 28) * (1 - f(29 / (H + 1)) * f((21 - G) / 11)),
+                J = (year + f(year / 4) + I + 2 - C + f(C / 4)) % 7,
+                L = I - J,
+                month = 3 + f((L + 40) / 44),
+                day = L + 28 - 31 * f(month / 4);
+            
+            const easter = new Date(year, month - 1, day);
+            
+            const addDays = (date, days) => {
+                const result = new Date(date);
+                result.setDate(result.getDate() + days);
+                return result;
+            };
+
+            const format = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+            return[
+                format(addDays(easter, -47)), // Carnaval
+                format(addDays(easter, -2)),  // Sexta-feira Santa
+                format(easter),               // Páscoa
+                format(addDays(easter, 60))   // Corpus Christi
+            ];
+        };
+
+        const checkIsHoliday = (dateString) => {
+            const [year, month, day] = dateString.split('-');
+            const formattedDate = `${day}/${month}`;
+            
+            const fixedHolidays =[
+                '01/01', // Confraternização Universal
+                '21/04', // Tiradentes
+                '01/05', // Dia do Trabalhador
+                '07/09', // Independência do Brasil
+                '12/10', // Nossa Senhora Aparecida
+                '02/11', // Finados
+                '15/11', // Proclamação da República
+                '25/12'  // Natal
+            ];
+
+            if (fixedHolidays.includes(formattedDate)) return true;
+
+            const mobileHolidays = getMobileHolidays(parseInt(year, 10));
+            return mobileHolidays.includes(formattedDate);
+        };
 
         const SAVED_LOCATIONS =[
             { name: 'Casa', address: 'R. Guilherme Lunardon, 300 - Pilarzinho, Curitiba - PR, 82110-240' },
@@ -134,8 +186,6 @@
             const [showList, setShowList] = useState(false);
             const[filteredLocations, setFilteredLocations] = useState(SAVED_LOCATIONS);
             const wrapperRef = useRef(null);
-
-            const themeColor = activeTab === 'official' ? 'emerald' : 'blue';
 
             useEffect(() => {
                 if (!value) {
@@ -228,35 +278,35 @@
             const TEMPO_CARGA_POR_1_PORCENTO = 4;
 
             // --- ESTADOS DE ABAS ---
-            const [activeTab, setActiveTab] = useState('official'); // 'official' | 'simulation'
+            const[activeTab, setActiveTab] = useState('official'); // 'official' | 'simulation'
 
             // --- ESTADOS OFICIAIS ---
             const[trips, setTrips] = useState([]);
-            const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
-            const [newDistance, setNewDistance] = useState('');
+            const[newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+            const[newDistance, setNewDistance] = useState('');
             const [newRoute, setNewRoute] = useState('');
 
             // --- ESTADOS DE SIMULAÇÃO ---
             const[simulatedTrips, setSimulatedTrips] = useState([]);
             const[simDate, setSimDate] = useState(new Date().toISOString().split('T')[0]);
             const[simDistance, setSimDistance] = useState('');
-            const [simRoute, setSimRoute] = useState('');
+            const[simRoute, setSimRoute] = useState('');
 
             const [showRouteList, setShowRouteList] = useState(false);
             
             // --- ESTADOS DO MAPA ---
             const[showMap, setShowMap] = useState(false);
             const[mapContext, setMapContext] = useState('official'); 
-            const [mapDistance, setMapDistance] = useState(0);
+            const[mapDistance, setMapDistance] = useState(0);
             const[addrOrigin, setAddrOrigin] = useState(localStorage.getItem('scooter_last_dest') || '');
             const[addrDest, setAddrDest] = useState('');
             const[isSearching, setIsSearching] = useState(false);
-            const [pickingMode, setPickingMode] = useState(null);
+            const[pickingMode, setPickingMode] = useState(null);
             
             const[showSettings, setShowSettings] = useState(false);
             
             // --- ESTADOS PARA DUPLICAÇÃO ---
-            const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+            const[duplicateModalOpen, setDuplicateModalOpen] = useState(false);
             const[tripToDuplicate, setTripToDuplicate] = useState(null);
             const[dateForDuplication, setDateForDuplication] = useState('');
 
@@ -291,7 +341,7 @@
                 return () => document.removeEventListener("mousedown", handleClickOutside);
             },[]);
 
-            // --- SINCRONIZAÇÃO GITHUB (AGORA SALVA OFICIAL E SIMULAÇÃO) ---
+            // --- SINCRONIZAÇÃO GITHUB ---
             const syncWithGithub = async (officialData, simData) => {
                 if (!syncConfig.token || !syncConfig.gistId) return;
                 try {
@@ -316,7 +366,6 @@
                     });
                     const data = await res.json();
                     
-                    // Carrega Oficial
                     if (data.files["scooter_trips.json"]) {
                         const content = JSON.parse(data.files["scooter_trips.json"].content);
                         if (content) {
@@ -325,7 +374,6 @@
                         }
                     }
 
-                    // Carrega Simulação
                     if (data.files["scooter_sim_trips.json"]) {
                         const simContent = JSON.parse(data.files["scooter_sim_trips.json"].content);
                         if (simContent) {
@@ -346,13 +394,66 @@
                 loadFromGithub();
             },[]);
 
+            // --- CORREÇÃO DO MAPA (ResizeObserver + InvalidateSize) ---
             useEffect(() => {
-                if (mapRef.current) {
+                let resizeObserver;
+
+                if (showMap && !mapRef.current) {
+                    // Pequeno delay para garantir que a div do modal foi renderizada pelo React
                     setTimeout(() => {
-                        mapRef.current.invalidateSize();
+                        const container = document.getElementById('map-container');
+                        if (!container) return;
+
+                        const map = L.map('map-container').setView([-25.4284, -49.2733], 13);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+                            attribution: '© OpenStreetMap',
+                            maxZoom: 19
+                        }).addTo(map);
+                        
+                        map.on('click', async (e) => {
+                            const mode = pickingModeRef.current;
+                            if (mode) {
+                                const lat = e.latlng.lat;
+                                const lng = e.latlng.lng;
+                                
+                                L.marker(e.latlng).addTo(map).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
+                                
+                                if (mode === 'origin') setAddrOrigin("Buscando endereço...");
+                                else if (mode === 'dest') setAddrDest("Buscando endereço...");
+
+                                const address = await reverseGeocode(lat, lng);
+
+                                if (mode === 'origin') setAddrOrigin(address);
+                                else if (mode === 'dest') setAddrDest(address);
+                                
+                                setPickingMode(null);
+                            }
+                        });
+
+                        mapRef.current = map;
+
+                        // Força o Leaflet a recalcular o tamanho após a inicialização
+                        setTimeout(() => {
+                            if (mapRef.current) mapRef.current.invalidateSize();
+                        }, 300);
+
+                        // Observa mudanças de tamanho no container para evitar o bug da tela cinza
+                        if (window.ResizeObserver) {
+                            resizeObserver = new ResizeObserver(() => {
+                                if (mapRef.current) mapRef.current.invalidateSize();
+                            });
+                            resizeObserver.observe(container);
+                        }
+
                     }, 100);
                 }
-            }, [pickingMode, showMap]);
+
+                return () => {
+                    if (resizeObserver) {
+                        resizeObserver.disconnect();
+                    }
+                };
+            }, [showMap]);
 
             const getNameByAddress = (addr) => {
                 const found = SAVED_LOCATIONS.find(loc => loc.address === addr);
@@ -448,12 +549,9 @@
                 }
             };
 
-            // --- FUNÇÃO PARA COPIAR OFICIAL PARA SIMULAÇÃO ---
             const handleCopyOfficialToSimulation = () => {
                 if (window.confirm("Deseja copiar todos os trajetos oficiais para a simulação? Isso substituirá os dados simulados atuais.")) {
-                    // Cria uma cópia profunda com novos IDs para evitar conflitos
                     const copiedTrips = trips.map((t, index) => ({ ...t, id: Date.now() + index }));
-                    
                     setSimulatedTrips(copiedTrips);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(copiedTrips));
                     syncWithGithub(trips, copiedTrips);
@@ -470,37 +568,6 @@
                 }
                 setShowRouteList(false);
             };
-
-            useEffect(() => {
-                if (showMap && !mapRef.current) {
-                    setTimeout(() => {
-                        const map = L.map('map-container').setView([-25.4284, -49.2733], 13);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-                        
-                        map.on('click', async (e) => {
-                            const mode = pickingModeRef.current;
-                            if (mode) {
-                                const lat = e.latlng.lat;
-                                const lng = e.latlng.lng;
-                                
-                                L.marker(e.latlng).addTo(map).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
-                                
-                                if (mode === 'origin') setAddrOrigin("Buscando endereço...");
-                                else if (mode === 'dest') setAddrDest("Buscando endereço...");
-
-                                const address = await reverseGeocode(lat, lng);
-
-                                if (mode === 'origin') setAddrOrigin(address);
-                                else if (mode === 'dest') setAddrDest(address);
-                                
-                                setPickingMode(null);
-                            }
-                        });
-
-                        mapRef.current = map;
-                    }, 100);
-                }
-            }, [showMap]);
 
             const confirmMapDistance = () => {
                 const nameOrigin = getNameByAddress(addrOrigin) || addrOrigin;
@@ -624,7 +691,7 @@
                     localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
                     syncWithGithub(updatedTrips, simulatedTrips);
                 } else {
-                    const updatedSims = [newTrip, ...simulatedTrips];
+                    const updatedSims =[newTrip, ...simulatedTrips];
                     setSimulatedTrips(updatedSims);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
                     syncWithGithub(trips, updatedSims);
@@ -946,12 +1013,24 @@
                                 <div className="grid gap-3">
                                     {currentTrips.map((trip) => {
                                         const metrics = calculateMetrics(trip.distance);
+                                        
+                                        // Lógica de Data e Feriado
+                                        const[year, month, day] = trip.date.split('-');
+                                        const dateObj = new Date(year, month - 1, day);
+                                        const dayOfWeekStr =['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dateObj.getDay()];
+                                        const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                                        const isHoliday = checkIsHoliday(trip.date);
+                                        const isRed = isWeekend || isHoliday;
+
                                         return (
                                             <div key={trip.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                                 <div className="flex-grow">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${activeTab === 'official' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {trip.date.split('-').reverse().join('/')}
+                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 ${activeTab === 'official' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                            {day}/{month}/{year}
+                                                            <span className={isRed ? 'text-red-500 font-black' : 'opacity-70'}>
+                                                                - {dayOfWeekStr}
+                                                            </span>
                                                         </span>
                                                         <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">R$ {metrics.value}</span>
                                                     </div>
