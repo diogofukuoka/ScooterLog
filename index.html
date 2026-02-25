@@ -237,7 +237,7 @@
             const [newRoute, setNewRoute] = useState('');
 
             // --- ESTADOS DE SIMULAÇÃO ---
-            const [simulatedTrips, setSimulatedTrips] = useState([]);
+            const[simulatedTrips, setSimulatedTrips] = useState([]);
             const[simDate, setSimDate] = useState(new Date().toISOString().split('T')[0]);
             const[simDistance, setSimDistance] = useState('');
             const [simRoute, setSimRoute] = useState('');
@@ -245,20 +245,20 @@
             const [showRouteList, setShowRouteList] = useState(false);
             
             // --- ESTADOS DO MAPA ---
-            const [showMap, setShowMap] = useState(false);
-            const[mapContext, setMapContext] = useState('official'); // Para saber qual aba abriu o mapa
+            const[showMap, setShowMap] = useState(false);
+            const[mapContext, setMapContext] = useState('official'); 
             const [mapDistance, setMapDistance] = useState(0);
-            const [addrOrigin, setAddrOrigin] = useState(localStorage.getItem('scooter_last_dest') || '');
-            const [addrDest, setAddrDest] = useState('');
+            const[addrOrigin, setAddrOrigin] = useState(localStorage.getItem('scooter_last_dest') || '');
+            const[addrDest, setAddrDest] = useState('');
             const[isSearching, setIsSearching] = useState(false);
             const [pickingMode, setPickingMode] = useState(null);
             
-            const [showSettings, setShowSettings] = useState(false);
+            const[showSettings, setShowSettings] = useState(false);
             
             // --- ESTADOS PARA DUPLICAÇÃO ---
             const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
-            const [tripToDuplicate, setTripToDuplicate] = useState(null);
-            const [dateForDuplication, setDateForDuplication] = useState('');
+            const[tripToDuplicate, setTripToDuplicate] = useState(null);
+            const[dateForDuplication, setDateForDuplication] = useState('');
 
             const[syncConfig, setSyncConfig] = useState({
                 token: localStorage.getItem('gh_token') || '',
@@ -272,7 +272,6 @@
 
             useEffect(() => { pickingModeRef.current = pickingMode; }, [pickingMode]);
 
-            // --- GARANTIR QUE A ORIGEM SEJA O ÚLTIMO DESTINO AO ABRIR O MAPA ---
             useEffect(() => {
                 if (showMap) {
                     const savedLast = localStorage.getItem('scooter_last_dest');
@@ -282,7 +281,6 @@
                 }
             },[showMap]);
 
-            // --- FECHAR LISTA DE ROTAS AO CLICAR FORA ---
             useEffect(() => {
                 const handleClickOutside = (event) => {
                     if (routeInputRef.current && !routeInputRef.current.contains(event.target)) {
@@ -293,15 +291,18 @@
                 return () => document.removeEventListener("mousedown", handleClickOutside);
             },[]);
 
-            // --- SINCRONIZAÇÃO GITHUB ---
-            const syncWithGithub = async (dataToSave) => {
+            // --- SINCRONIZAÇÃO GITHUB (AGORA SALVA OFICIAL E SIMULAÇÃO) ---
+            const syncWithGithub = async (officialData, simData) => {
                 if (!syncConfig.token || !syncConfig.gistId) return;
                 try {
                     await fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
                         method: 'PATCH',
                         headers: { 'Authorization': `token ${syncConfig.token}` },
                         body: JSON.stringify({
-                            files: { "scooter_trips.json": { content: JSON.stringify(dataToSave) } }
+                            files: { 
+                                "scooter_trips.json": { content: JSON.stringify(officialData) },
+                                "scooter_sim_trips.json": { content: JSON.stringify(simData) }
+                            }
                         })
                     });
                 } catch (e) { console.error("Erro ao sincronizar:", e); }
@@ -314,10 +315,23 @@
                         headers: { 'Authorization': `token ${syncConfig.token}` }
                     });
                     const data = await res.json();
-                    const content = JSON.parse(data.files["scooter_trips.json"].content);
-                    if (content) {
-                        setTrips(content);
-                        localStorage.setItem('scooter_trips', JSON.stringify(content));
+                    
+                    // Carrega Oficial
+                    if (data.files["scooter_trips.json"]) {
+                        const content = JSON.parse(data.files["scooter_trips.json"].content);
+                        if (content) {
+                            setTrips(content);
+                            localStorage.setItem('scooter_trips', JSON.stringify(content));
+                        }
+                    }
+
+                    // Carrega Simulação
+                    if (data.files["scooter_sim_trips.json"]) {
+                        const simContent = JSON.parse(data.files["scooter_sim_trips.json"].content);
+                        if (simContent) {
+                            setSimulatedTrips(simContent);
+                            localStorage.setItem('scooter_sim_trips', JSON.stringify(simContent));
+                        }
                     }
                 } catch (e) { console.error("Erro ao carregar nuvem:", e); }
             };
@@ -421,7 +435,7 @@
                     localStorage.setItem('scooter_trips', '[]');
                     localStorage.removeItem('scooter_last_dest');
                     setAddrOrigin('');
-                    syncWithGithub([]);
+                    syncWithGithub([], simulatedTrips);
                     setShowSettings(false);
                 }
             };
@@ -429,7 +443,20 @@
             const handleClearSimulation = () => {
                 if (window.confirm("Deseja limpar todos os dados da simulação?")) {
                     setSimulatedTrips([]);
-                    localStorage.removeItem('scooter_sim_trips');
+                    localStorage.setItem('scooter_sim_trips', '[]');
+                    syncWithGithub(trips,[]);
+                }
+            };
+
+            // --- FUNÇÃO PARA COPIAR OFICIAL PARA SIMULAÇÃO ---
+            const handleCopyOfficialToSimulation = () => {
+                if (window.confirm("Deseja copiar todos os trajetos oficiais para a simulação? Isso substituirá os dados simulados atuais.")) {
+                    // Cria uma cópia profunda com novos IDs para evitar conflitos
+                    const copiedTrips = trips.map((t, index) => ({ ...t, id: Date.now() + index }));
+                    
+                    setSimulatedTrips(copiedTrips);
+                    localStorage.setItem('scooter_sim_trips', JSON.stringify(copiedTrips));
+                    syncWithGithub(trips, copiedTrips);
                 }
             };
 
@@ -538,7 +565,7 @@
                     const updatedTrips =[{ id: Date.now(), date: newDate, distance: distValue, route: newRoute }, ...trips];
                     setTrips(updatedTrips);
                     localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
-                    syncWithGithub(updatedTrips);
+                    syncWithGithub(updatedTrips, simulatedTrips);
 
                     if (newRoute) {
                         const parts = newRoute.split('/');
@@ -556,6 +583,7 @@
                     const updatedSims =[{ id: Date.now(), date: simDate, distance: distValue, route: simRoute }, ...simulatedTrips];
                     setSimulatedTrips(updatedSims);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
+                    syncWithGithub(trips, updatedSims);
                     setSimRoute(''); setSimDistance('');
                 }
             };
@@ -565,11 +593,12 @@
                     const updatedTrips = trips.filter(trip => trip.id !== id);
                     setTrips(updatedTrips);
                     localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
-                    syncWithGithub(updatedTrips);
+                    syncWithGithub(updatedTrips, simulatedTrips);
                 } else {
                     const updatedSims = simulatedTrips.filter(trip => trip.id !== id);
                     setSimulatedTrips(updatedSims);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
+                    syncWithGithub(trips, updatedSims);
                 }
             };
 
@@ -593,11 +622,12 @@
                     const updatedTrips = [newTrip, ...trips];
                     setTrips(updatedTrips);
                     localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
-                    syncWithGithub(updatedTrips);
+                    syncWithGithub(updatedTrips, simulatedTrips);
                 } else {
                     const updatedSims = [newTrip, ...simulatedTrips];
                     setSimulatedTrips(updatedSims);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
+                    syncWithGithub(trips, updatedSims);
                 }
                 
                 setDuplicateModalOpen(false);
@@ -892,10 +922,19 @@
                                 <h2 className="text-lg font-bold text-slate-700 flex items-center gap-2">
                                     <Calendar size={20} /> {activeTab === 'official' ? 'Histórico de Viagens' : 'Trajetos Simulados'}
                                 </h2>
-                                {activeTab === 'simulation' && simulatedTrips.length > 0 && (
-                                    <button onClick={handleClearSimulation} className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
-                                        <Trash2 size={14}/> Limpar Simulação
-                                    </button>
+                                
+                                {/* BOTÕES EXTRAS NA ABA DE SIMULAÇÃO */}
+                                {activeTab === 'simulation' && (
+                                    <div className="flex gap-2">
+                                        <button onClick={handleCopyOfficialToSimulation} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg transition-colors">
+                                            <Copy size={14}/> Copiar Oficial
+                                        </button>
+                                        {simulatedTrips.length > 0 && (
+                                            <button onClick={handleClearSimulation} className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+                                                <Trash2 size={14}/> Limpar
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                             
