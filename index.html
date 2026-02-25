@@ -25,7 +25,7 @@
 
     <style>
         body { -webkit-tap-highlight-color: transparent; }
-        /* Correção do CSS do mapa para garantir que ele preencha o modal corretamente */
+        /* CSS do mapa ajustado para preenchimento absoluto e garantido */
         #map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #e2e8f0; }
         .leaflet-routing-container { display: none !important; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid currentColor; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
@@ -100,7 +100,7 @@
         };
 
         const checkIsHoliday = (dateString) => {
-            const [year, month, day] = dateString.split('-');
+            const[year, month, day] = dateString.split('-');
             const formattedDate = `${day}/${month}`;
             
             const fixedHolidays =[
@@ -183,7 +183,7 @@
         ];
 
         const LocationInput = ({ label, value, onChange, placeholder, onPickMap, isPicking, activeTab }) => {
-            const [showList, setShowList] = useState(false);
+            const[showList, setShowList] = useState(false);
             const[filteredLocations, setFilteredLocations] = useState(SAVED_LOCATIONS);
             const wrapperRef = useRef(null);
 
@@ -394,29 +394,37 @@
                 loadFromGithub();
             },[]);
 
-            // --- CORREÇÃO DO MAPA (ResizeObserver + InvalidateSize) ---
+            // --- CORREÇÃO DEFINITIVA DO MAPA ---
             useEffect(() => {
-                let resizeObserver;
+                let mapInstance = null;
+                let resizeObserver = null;
+                let timeouts =[];
 
-                if (showMap && !mapRef.current) {
+                if (showMap) {
                     // Pequeno delay para garantir que a div do modal foi renderizada pelo React
-                    setTimeout(() => {
+                    const initTimer = setTimeout(() => {
                         const container = document.getElementById('map-container');
                         if (!container) return;
 
-                        const map = L.map('map-container').setView([-25.4284, -49.2733], 13);
+                        // Prevenção extra contra inicialização dupla do Leaflet
+                        if (container._leaflet_id) {
+                            container._leaflet_id = null;
+                        }
+
+                        mapInstance = L.map('map-container').setView([-25.4284, -49.2733], 13);
+                        
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
                             attribution: '© OpenStreetMap',
                             maxZoom: 19
-                        }).addTo(map);
+                        }).addTo(mapInstance);
                         
-                        map.on('click', async (e) => {
+                        mapInstance.on('click', async (e) => {
                             const mode = pickingModeRef.current;
                             if (mode) {
                                 const lat = e.latlng.lat;
                                 const lng = e.latlng.lng;
                                 
-                                L.marker(e.latlng).addTo(map).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
+                                L.marker(e.latlng).addTo(mapInstance).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
                                 
                                 if (mode === 'origin') setAddrOrigin("Buscando endereço...");
                                 else if (mode === 'dest') setAddrDest("Buscando endereço...");
@@ -430,27 +438,41 @@
                             }
                         });
 
-                        mapRef.current = map;
+                        mapRef.current = mapInstance;
 
-                        // Força o Leaflet a recalcular o tamanho após a inicialização
-                        setTimeout(() => {
-                            if (mapRef.current) mapRef.current.invalidateSize();
-                        }, 300);
+                        // Força a atualização do tamanho do mapa repetidas vezes durante a animação de abertura do modal
+                        const invalidate = () => {
+                            if (mapRef.current) {
+                                mapRef.current.invalidateSize();
+                            }
+                        };
+                        
+                        timeouts.push(setTimeout(invalidate, 100));
+                        timeouts.push(setTimeout(invalidate, 300));
+                        timeouts.push(setTimeout(invalidate, 500));
+                        timeouts.push(setTimeout(invalidate, 1000));
 
-                        // Observa mudanças de tamanho no container para evitar o bug da tela cinza
+                        // Observador de redimensionamento contínuo (Garante que o mapa sempre preencha a tela)
                         if (window.ResizeObserver) {
                             resizeObserver = new ResizeObserver(() => {
-                                if (mapRef.current) mapRef.current.invalidateSize();
+                                window.requestAnimationFrame(invalidate);
                             });
                             resizeObserver.observe(container);
                         }
 
-                    }, 100);
+                    }, 50);
+                    
+                    timeouts.push(initTimer);
                 }
 
+                // Função de limpeza executada quando o modal fecha (showMap = false)
                 return () => {
-                    if (resizeObserver) {
-                        resizeObserver.disconnect();
+                    timeouts.forEach(clearTimeout);
+                    if (resizeObserver) resizeObserver.disconnect();
+                    if (mapRef.current) {
+                        mapRef.current.remove();
+                        mapRef.current = null;
+                        routingControlRef.current = null;
                     }
                 };
             }, [showMap]);
@@ -585,9 +607,7 @@
                 }
                 
                 setShowMap(false);
-                if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
                 setMapDistance(0);
-                
                 setAddrOrigin(addrDest);
                 setAddrDest(''); 
                 setPickingMode(null);
@@ -595,9 +615,7 @@
 
             const closeMap = () => {
                 setShowMap(false);
-                if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
                 setMapDistance(0); 
-                
                 setAddrOrigin(localStorage.getItem('scooter_last_dest') || '');
                 setAddrDest(''); 
                 setPickingMode(null);
@@ -686,7 +704,7 @@
                 };
 
                 if (activeTab === 'official') {
-                    const updatedTrips = [newTrip, ...trips];
+                    const updatedTrips =[newTrip, ...trips];
                     setTrips(updatedTrips);
                     localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
                     syncWithGithub(updatedTrips, simulatedTrips);
