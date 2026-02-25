@@ -200,60 +200,14 @@
                 }
             },[value]);
 
-           // --- INICIALIZAÇÃO E CORREÇÃO DEFINITIVA DO MAPA ---
+            // CORREÇÃO: O código do mapa que estava aqui foi removido, pois ele já existe corretamente no componente App.
+            // Aqui mantemos apenas o listener para fechar a lista ao clicar fora.
             useEffect(() => {
-                if (showMap) {
-                    // Aguarda o modal ser inserido no DOM
-                    const initTimer = setTimeout(() => {
-                        const container = document.getElementById('map-container');
-                        if (!container || mapRef.current) return;
-
-                        // Inicializa o mapa
-                        const map = L.map('map-container').setView([-25.4284, -49.2733], 13);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-                            attribution: '© OpenStreetMap',
-                            maxZoom: 19
-                        }).addTo(map);
-                        
-                        map.on('click', async (e) => {
-                            const mode = pickingModeRef.current;
-                            if (mode) {
-                                const lat = e.latlng.lat;
-                                const lng = e.latlng.lng;
-                                
-                                L.marker(e.latlng).addTo(map).bindPopup(mode === 'origin' ? "Origem" : "Destino").openPopup();
-                                
-                                if (mode === 'origin') setAddrOrigin("Buscando endereço...");
-                                else if (mode === 'dest') setAddrDest("Buscando endereço...");
-
-                                const address = await reverseGeocode(lat, lng);
-
-                                if (mode === 'origin') setAddrOrigin(address);
-                                else if (mode === 'dest') setAddrDest(address);
-                                
-                                setPickingMode(null);
-                            }
-                        });
-
-                        mapRef.current = map;
-
-                        // O SEGREDO PARA RESOLVER A TELA CINZA:
-                        // Forçar a atualização do tamanho do mapa várias vezes durante o primeiro segundo.
-                        // Isso garante que o Leaflet pegue as dimensões exatas após qualquer animação do modal.
-                        let count = 0;
-                        const fixMapSize = setInterval(() => {
-                            if (mapRef.current) {
-                                mapRef.current.invalidateSize(true);
-                            }
-                            count++;
-                            if (count > 15) clearInterval(fixMapSize); // Para após 1.5 segundos
-                        }, 100);
-
-                    }, 150); // Delay inicial para garantir que o modal abriu
-
-                    return () => clearTimeout(initTimer);
-                }
-            },[showMap]);
+                const handleClickOutside = (event) => {
+                    if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+                        setShowList(false);
+                    }
+                };
                 document.addEventListener("mousedown", handleClickOutside);
                 return () => document.removeEventListener("mousedown", handleClickOutside);
             },[]);
@@ -1138,4 +1092,3 @@
     </script>
 </body>
 </html>
-
