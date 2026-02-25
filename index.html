@@ -66,6 +66,7 @@
         const SettingsIcon = (props) => <IconBase {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></IconBase>;
         const Copy = (props) => <IconBase {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></IconBase>;
         const CalculatorIcon = (props) => <IconBase {...props}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><line x1="8" y1="10" x2="8" y2="10"></line><line x1="12" y1="10" x2="12" y2="10"></line><line x1="16" y1="10" x2="16" y2="10"></line><line x1="8" y1="14" x2="8" y2="14"></line><line x1="12" y1="14" x2="12" y2="14"></line><line x1="8" y1="18" x2="8" y2="18"></line><line x1="12" y1="18" x2="12" y2="18"></line></IconBase>;
+        const FlaskConical = (props) => <IconBase {...props}><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"></path><line x1="8.5" y1="2" x2="15.5" y2="2"></line><path d="M8.5 14h7"></path></IconBase>;
 
         // --- FUNÇÕES DE FERIADOS ---
         const getMobileHolidays = (year) => {
@@ -215,11 +216,29 @@
 
             const currentName = SAVED_LOCATIONS.find(l => l.address === value)?.name;
 
+            // Cores baseadas na aba
+            let activeColorClass = 'text-blue-600';
+            let focusRingClass = 'focus:ring-blue-500';
+            let btnClass = 'bg-blue-600 text-white border-blue-600';
+            let hoverBgClass = 'hover:bg-blue-50';
+
+            if (activeTab === 'official') {
+                activeColorClass = 'text-emerald-600';
+                focusRingClass = 'focus:ring-emerald-500';
+                btnClass = 'bg-emerald-600 text-white border-emerald-600';
+                hoverBgClass = 'hover:bg-emerald-50';
+            } else if (activeTab === 'simulation2') {
+                activeColorClass = 'text-violet-600';
+                focusRingClass = 'focus:ring-violet-500';
+                btnClass = 'bg-violet-600 text-white border-violet-600';
+                hoverBgClass = 'hover:bg-violet-50';
+            }
+
             return (
                 <div className="relative w-full" ref={wrapperRef}>
                     <div className="flex justify-between items-center mb-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase">{label}</label>
-                        {currentName && <span className={`text-[10px] font-bold truncate max-w-[150px] ${activeTab === 'official' ? 'text-emerald-600' : 'text-blue-600'}`}>{currentName}</span>}
+                        {currentName && <span className={`text-[10px] font-bold truncate max-w-[150px] ${activeColorClass}`}>{currentName}</span>}
                     </div>
                     
                     <div className="flex gap-2">
@@ -230,7 +249,7 @@
                                 onChange={(e) => { onChange(e.target.value); setShowList(true); }}
                                 onFocus={() => setShowList(true)}
                                 placeholder={placeholder}
-                                className={`w-full border rounded-lg p-3 text-sm focus:ring-2 outline-none shadow-sm transition-all ${isPicking ? 'picking-active' : 'border-slate-300'} ${activeTab === 'official' ? 'focus:ring-emerald-500' : 'focus:ring-blue-500'}`} 
+                                className={`w-full border rounded-lg p-3 text-sm focus:ring-2 outline-none shadow-sm transition-all ${isPicking ? 'picking-active' : 'border-slate-300'} ${focusRingClass}`} 
                             />
                             {value && (
                                 <button 
@@ -243,7 +262,7 @@
                         </div>
                         <button 
                             onClick={onPickMap}
-                            className={`p-3 rounded-lg border transition-colors flex-shrink-0 ${isPicking ? (activeTab === 'official' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-blue-600 text-white border-blue-600') : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}
+                            className={`p-3 rounded-lg border transition-colors flex-shrink-0 ${isPicking ? btnClass : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}
                             title="Selecionar no mapa"
                         >
                             <Crosshair size={20} />
@@ -256,7 +275,7 @@
                                 <li 
                                     key={idx} 
                                     onClick={() => handleSelect(loc.address)}
-                                    className={`p-3 cursor-pointer border-b border-slate-50 last:border-0 transition-colors ${activeTab === 'official' ? 'hover:bg-emerald-50' : 'hover:bg-blue-50'}`}
+                                    className={`p-3 cursor-pointer border-b border-slate-50 last:border-0 transition-colors ${hoverBgClass}`}
                                 >
                                     <div className="font-bold text-slate-700 text-sm">{loc.name}</div>
                                     <div className="text-xs text-slate-500 truncate">{loc.address}</div>
@@ -276,7 +295,7 @@
             const TEMPO_CARGA_POR_1_PORCENTO = 4;
 
             // --- ESTADOS DE ABAS ---
-            const[activeTab, setActiveTab] = useState('official'); // 'official' | 'simulation'
+            const[activeTab, setActiveTab] = useState('official'); // 'official' | 'simulation' | 'simulation2'
 
             // --- ESTADOS OFICIAIS ---
             const[trips, setTrips] = useState([]);
@@ -284,11 +303,17 @@
             const[newDistance, setNewDistance] = useState('');
             const[newRoute, setNewRoute] = useState('');
 
-            // --- ESTADOS DE SIMULAÇÃO ---
+            // --- ESTADOS DE SIMULAÇÃO 1 ---
             const[simulatedTrips, setSimulatedTrips] = useState([]);
             const[simDate, setSimDate] = useState(new Date().toISOString().split('T')[0]);
             const[simDistance, setSimDistance] = useState('');
             const[simRoute, setSimRoute] = useState('');
+
+            // --- ESTADOS DE SIMULAÇÃO 2 ---
+            const[simulatedTrips2, setSimulatedTrips2] = useState([]);
+            const[simDate2, setSimDate2] = useState(new Date().toISOString().split('T')[0]);
+            const[simDistance2, setSimDistance2] = useState('');
+            const[simRoute2, setSimRoute2] = useState('');
 
             const[showRouteList, setShowRouteList] = useState(false);
             
@@ -341,7 +366,7 @@
             },[]);
 
             // --- SINCRONIZAÇÃO GITHUB ---
-            const syncWithGithub = async (officialData, simData) => {
+            const syncWithGithub = async (officialData, simData, simData2) => {
                 if (!syncConfig.token || !syncConfig.gistId) return;
                 try {
                     await fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
@@ -350,7 +375,8 @@
                         body: JSON.stringify({
                             files: { 
                                 "scooter_trips.json": { content: JSON.stringify(officialData) },
-                                "scooter_sim_trips.json": { content: JSON.stringify(simData) }
+                                "scooter_sim_trips.json": { content: JSON.stringify(simData) },
+                                "scooter_sim_trips_2.json": { content: JSON.stringify(simData2) }
                             }
                         })
                     });
@@ -380,6 +406,14 @@
                             localStorage.setItem('scooter_sim_trips', JSON.stringify(simContent));
                         }
                     }
+
+                    if (data.files["scooter_sim_trips_2.json"]) {
+                        const simContent2 = JSON.parse(data.files["scooter_sim_trips_2.json"].content);
+                        if (simContent2) {
+                            setSimulatedTrips2(simContent2);
+                            localStorage.setItem('scooter_sim_trips_2', JSON.stringify(simContent2));
+                        }
+                    }
                 } catch (e) { console.error("Erro ao carregar nuvem:", e); }
             };
 
@@ -389,6 +423,9 @@
                 
                 const localSim = JSON.parse(localStorage.getItem('scooter_sim_trips') || '[]');
                 setSimulatedTrips(localSim);
+
+                const localSim2 = JSON.parse(localStorage.getItem('scooter_sim_trips_2') || '[]');
+                setSimulatedTrips2(localSim2);
 
                 loadFromGithub();
             },[]);
@@ -405,14 +442,11 @@
                     const container = mapContainerRef.current;
                     if (!container) return;
 
-                    // O SEGREDO: Aguarda ativamente até que a div tenha largura e altura reais
-                    // Isso previne que o Leaflet inicialize em uma div 0x0 durante a animação do modal
                     if (container.clientWidth === 0 || container.clientHeight === 0) {
                         initTimeout = setTimeout(initializeLeaflet, 50);
                         return;
                     }
 
-                    // Limpa qualquer instância anterior presa na div
                     if (container._leaflet_id) {
                         container._leaflet_id = null;
                     }
@@ -445,11 +479,8 @@
                     });
 
                     mapRef.current = mapInstance;
-
-                    // Força o recálculo do tamanho imediatamente após criar
                     mapInstance.invalidateSize();
 
-                    // Observador de redimensionamento contínuo para manter o mapa ajustado
                     if (window.ResizeObserver) {
                         resizeObserver = new ResizeObserver(() => {
                             if (mapRef.current) {
@@ -460,10 +491,8 @@
                     }
                 };
 
-                // Inicia o processo de verificação e inicialização
                 initializeLeaflet();
 
-                // Limpeza ao fechar o modal
                 return () => {
                     if (initTimeout) clearTimeout(initTimeout);
                     if (resizeObserver) resizeObserver.disconnect();
@@ -540,7 +569,6 @@
                     createMarker: (i, wp) => L.marker(wp.latLng)
                 }).on('routesfound', (e) => {
                     setMapDistance((e.routes[0].summary.totalDistance / 1000).toFixed(1));
-                    // Força recálculo após a rota ser desenhada
                     setTimeout(() => { if (mapRef.current) mapRef.current.invalidateSize(); }, 100);
                 }).addTo(map);
                 routingControlRef.current = control;
@@ -558,25 +586,37 @@
                     localStorage.setItem('scooter_trips', '[]');
                     localStorage.removeItem('scooter_last_dest');
                     setAddrOrigin('');
-                    syncWithGithub([], simulatedTrips);
+                    syncWithGithub([], simulatedTrips, simulatedTrips2);
                     setShowSettings(false);
                 }
             };
 
-            const handleClearSimulation = () => {
-                if (window.confirm("Deseja limpar todos os dados da simulação?")) {
-                    setSimulatedTrips([]);
-                    localStorage.setItem('scooter_sim_trips', '[]');
-                    syncWithGithub(trips,[]);
+            const handleClearSimulation = (simNumber) => {
+                if (window.confirm(`Deseja limpar todos os dados da Simulação ${simNumber}?`)) {
+                    if (simNumber === 1) {
+                        setSimulatedTrips([]);
+                        localStorage.setItem('scooter_sim_trips', '[]');
+                        syncWithGithub(trips, [], simulatedTrips2);
+                    } else {
+                        setSimulatedTrips2([]);
+                        localStorage.setItem('scooter_sim_trips_2', '[]');
+                        syncWithGithub(trips, simulatedTrips, []);
+                    }
                 }
             };
 
-            const handleCopyOfficialToSimulation = () => {
-                if (window.confirm("Deseja copiar todos os trajetos oficiais para a simulação? Isso substituirá os dados simulados atuais.")) {
+            const handleCopyOfficialToSimulation = (targetSim) => {
+                if (window.confirm(`Deseja copiar todos os trajetos oficiais para a Simulação ${targetSim}? Isso substituirá os dados simulados atuais.`)) {
                     const copiedTrips = trips.map((t, index) => ({ ...t, id: Date.now() + index }));
-                    setSimulatedTrips(copiedTrips);
-                    localStorage.setItem('scooter_sim_trips', JSON.stringify(copiedTrips));
-                    syncWithGithub(trips, copiedTrips);
+                    if (targetSim === 1) {
+                        setSimulatedTrips(copiedTrips);
+                        localStorage.setItem('scooter_sim_trips', JSON.stringify(copiedTrips));
+                        syncWithGithub(trips, copiedTrips, simulatedTrips2);
+                    } else {
+                        setSimulatedTrips2(copiedTrips);
+                        localStorage.setItem('scooter_sim_trips_2', JSON.stringify(copiedTrips));
+                        syncWithGithub(trips, simulatedTrips, copiedTrips);
+                    }
                 }
             };
 
@@ -584,9 +624,12 @@
                 if (activeTab === 'official') {
                     setNewRoute(route.name);
                     setNewDistance(route.dist); 
-                } else {
+                } else if (activeTab === 'simulation') {
                     setSimRoute(route.name);
                     setSimDistance(route.dist);
+                } else {
+                    setSimRoute2(route.name);
+                    setSimDistance2(route.dist);
                 }
                 setShowRouteList(false);
             };
@@ -601,9 +644,12 @@
                     setNewDistance(mapDistance);
                     setNewRoute(finalRoute);
                     localStorage.setItem('scooter_last_dest', addrDest);
-                } else {
+                } else if (mapContext === 'simulation') {
                     setSimDistance(mapDistance);
                     setSimRoute(finalRoute);
+                } else {
+                    setSimDistance2(mapDistance);
+                    setSimRoute2(finalRoute);
                 }
                 
                 setShowMap(false);
@@ -627,14 +673,12 @@
                 const hoursDecimal = dist / VELOCIDADE;
                 const totalMinutes = Math.ceil(hoursDecimal * 60);
                 const timeHours = Math.floor(totalMinutes / 60);
-                const timeMinutes = totalMinutes % 60;
-                const timeStr = `${String(timeHours).padStart(2, '0')}:${String(timeMinutes).padStart(2, '0')}`;
+                const timeStr = `${String(timeHours).padStart(2, '0')}:${String(timeMinutes % 60).padStart(2, '0')}`;
                 const percentRaw = (dist / AUTONOMIA) * 100;
                 const percentStr = percentRaw.toFixed(2).replace('.', ',');
                 const chargeMinutesTotal = Math.ceil(percentRaw * TEMPO_CARGA_POR_1_PORCENTO);
                 const chargeHours = Math.floor(chargeMinutesTotal / 60);
-                const chargeMins = chargeMinutesTotal % 60;
-                const chargeStr = `${String(chargeHours).padStart(2, '0')}:${String(chargeMins).padStart(2, '0')}`;
+                const chargeStr = `${String(chargeHours).padStart(2, '0')}:${String(chargeMinutesTotal % 60).padStart(2, '0')}`;
                 const custoPorKm = (PRECO_KWH * KWH_CARGA_TOTAL) / AUTONOMIA;
                 const valueRaw = dist * custoPorKm;
                 const valueStr = valueRaw.toFixed(2).replace('.', ',');
@@ -650,7 +694,7 @@
                     const updatedTrips =[{ id: Date.now(), date: newDate, distance: distValue, route: newRoute }, ...trips];
                     setTrips(updatedTrips);
                     localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
-                    syncWithGithub(updatedTrips, simulatedTrips);
+                    syncWithGithub(updatedTrips, simulatedTrips, simulatedTrips2);
 
                     if (newRoute) {
                         const parts = newRoute.split('/');
@@ -662,14 +706,22 @@
                         }
                     }
                     setNewRoute(''); setNewDistance('');
-                } else {
+                } else if (activeTab === 'simulation') {
                     if (!simDistance || !simRoute) return;
                     const distValue = parseFloat(simDistance.toString().replace(',', '.'));
                     const updatedSims =[{ id: Date.now(), date: simDate, distance: distValue, route: simRoute }, ...simulatedTrips];
                     setSimulatedTrips(updatedSims);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
-                    syncWithGithub(trips, updatedSims);
+                    syncWithGithub(trips, updatedSims, simulatedTrips2);
                     setSimRoute(''); setSimDistance('');
+                } else {
+                    if (!simDistance2 || !simRoute2) return;
+                    const distValue = parseFloat(simDistance2.toString().replace(',', '.'));
+                    const updatedSims2 =[{ id: Date.now(), date: simDate2, distance: distValue, route: simRoute2 }, ...simulatedTrips2];
+                    setSimulatedTrips2(updatedSims2);
+                    localStorage.setItem('scooter_sim_trips_2', JSON.stringify(updatedSims2));
+                    syncWithGithub(trips, simulatedTrips, updatedSims2);
+                    setSimRoute2(''); setSimDistance2('');
                 }
             };
 
@@ -678,12 +730,17 @@
                     const updatedTrips = trips.filter(trip => trip.id !== id);
                     setTrips(updatedTrips);
                     localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
-                    syncWithGithub(updatedTrips, simulatedTrips);
-                } else {
+                    syncWithGithub(updatedTrips, simulatedTrips, simulatedTrips2);
+                } else if (activeTab === 'simulation') {
                     const updatedSims = simulatedTrips.filter(trip => trip.id !== id);
                     setSimulatedTrips(updatedSims);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
-                    syncWithGithub(trips, updatedSims);
+                    syncWithGithub(trips, updatedSims, simulatedTrips2);
+                } else {
+                    const updatedSims2 = simulatedTrips2.filter(trip => trip.id !== id);
+                    setSimulatedTrips2(updatedSims2);
+                    localStorage.setItem('scooter_sim_trips_2', JSON.stringify(updatedSims2));
+                    syncWithGithub(trips, simulatedTrips, updatedSims2);
                 }
             };
 
@@ -707,12 +764,17 @@
                     const updatedTrips =[newTrip, ...trips];
                     setTrips(updatedTrips);
                     localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
-                    syncWithGithub(updatedTrips, simulatedTrips);
-                } else {
+                    syncWithGithub(updatedTrips, simulatedTrips, simulatedTrips2);
+                } else if (activeTab === 'simulation') {
                     const updatedSims =[newTrip, ...simulatedTrips];
                     setSimulatedTrips(updatedSims);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
-                    syncWithGithub(trips, updatedSims);
+                    syncWithGithub(trips, updatedSims, simulatedTrips2);
+                } else {
+                    const updatedSims2 =[newTrip, ...simulatedTrips2];
+                    setSimulatedTrips2(updatedSims2);
+                    localStorage.setItem('scooter_sim_trips_2', JSON.stringify(updatedSims2));
+                    syncWithGithub(trips, simulatedTrips, updatedSims2);
                 }
                 
                 setDuplicateModalOpen(false);
@@ -720,8 +782,39 @@
             };
 
             // --- VARIÁVEIS DINÂMICAS BASEADAS NA ABA ---
-            const currentTrips = activeTab === 'official' ? trips : simulatedTrips;
-            const currentRouteInput = activeTab === 'official' ? newRoute : simRoute;
+            let currentTrips = [];
+            let currentRouteInput = '';
+            let themeColor = '';
+            let themeBg = '';
+            let themeBorder = '';
+            let themeHover = '';
+            let themeText = '';
+
+            if (activeTab === 'official') {
+                currentTrips = trips;
+                currentRouteInput = newRoute;
+                themeColor = 'emerald';
+                themeBg = 'bg-emerald-600';
+                themeBorder = 'border-emerald-500';
+                themeHover = 'hover:bg-emerald-700';
+                themeText = 'text-emerald-600';
+            } else if (activeTab === 'simulation') {
+                currentTrips = simulatedTrips;
+                currentRouteInput = simRoute;
+                themeColor = 'blue';
+                themeBg = 'bg-blue-600';
+                themeBorder = 'border-blue-500';
+                themeHover = 'hover:bg-blue-700';
+                themeText = 'text-blue-600';
+            } else {
+                currentTrips = simulatedTrips2;
+                currentRouteInput = simRoute2;
+                themeColor = 'violet';
+                themeBg = 'bg-violet-600';
+                themeBorder = 'border-violet-500';
+                themeHover = 'hover:bg-violet-700';
+                themeText = 'text-violet-600';
+            }
             
             const totalKm = currentTrips.reduce((acc, curr) => acc + curr.distance, 0);
             const totalCost = currentTrips.reduce((acc, curr) => acc + parseFloat(calculateMetrics(curr.distance).value.replace(',', '.')), 0);
@@ -729,8 +822,7 @@
             const totalPercentStr = totalPercentRaw.toFixed(2).replace('.', ',');
             const totalChargeMinutes = Math.ceil(totalPercentRaw * TEMPO_CARGA_POR_1_PORCENTO);
             const totalChargeHours = Math.floor(totalChargeMinutes / 60);
-            const totalChargeMins = totalChargeMinutes % 60;
-            const totalChargeStr = `${String(totalChargeHours).padStart(2, '0')}:${String(totalChargeMins).padStart(2, '0')}`;
+            const totalChargeStr = `${String(totalChargeHours).padStart(2, '0')}:${String(totalChargeMinutes % 60).padStart(2, '0')}`;
 
             // --- LÓGICA DE CORES DA BATERIA ---
             let batteryBgClass = "bg-white";
@@ -755,7 +847,7 @@
                         <div className="fixed inset-0 z-[150] bg-black/60 flex items-center justify-center p-4">
                             <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
                                 <h3 className="font-bold text-lg text-slate-700 mb-2 flex items-center gap-2">
-                                    <Copy size={20} className={activeTab === 'official' ? 'text-emerald-500' : 'text-blue-500'} /> Duplicar Viagem
+                                    <Copy size={20} className={themeText} /> Duplicar Viagem
                                 </h3>
                                 <p className="text-sm text-slate-500 mb-4">
                                     Trajeto: <span className="font-bold text-slate-700">{tripToDuplicate.route}</span>
@@ -767,13 +859,13 @@
                                         type="date" 
                                         value={dateForDuplication} 
                                         onChange={(e) => setDateForDuplication(e.target.value)} 
-                                        className={`w-full bg-slate-50 border rounded-lg p-3 outline-none focus:ring-2 ${activeTab === 'official' ? 'focus:ring-emerald-500' : 'focus:ring-blue-500'}`} 
+                                        className={`w-full bg-slate-50 border rounded-lg p-3 outline-none focus:ring-2 focus:ring-${themeColor}-500`} 
                                     />
                                 </div>
 
                                 <div className="flex gap-3">
                                     <button onClick={() => setDuplicateModalOpen(false)} className="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-50">Cancelar</button>
-                                    <button onClick={confirmDuplicate} className={`flex-1 py-2.5 rounded-lg text-white font-bold text-sm shadow-md ${activeTab === 'official' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}>Confirmar</button>
+                                    <button onClick={confirmDuplicate} className={`flex-1 py-2.5 rounded-lg text-white font-bold text-sm shadow-md ${themeBg} ${themeHover}`}>Confirmar</button>
                                 </div>
                             </div>
                         </div>
@@ -786,7 +878,9 @@
                                 
                                 <div className="p-4 bg-slate-100 border-b flex justify-between items-center flex-shrink-0">
                                     <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                                        <MapIcon size={18} /> Calcular Rota {mapContext === 'simulation' && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded ml-2">Simulação</span>}
+                                        <MapIcon size={18} /> Calcular Rota 
+                                        {mapContext === 'simulation' && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded ml-2">Simulação 1</span>}
+                                        {mapContext === 'simulation2' && <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded ml-2">Simulação 2</span>}
                                     </h3>
                                     <button onClick={closeMap} className="text-slate-400 hover:text-red-500"><X size={24} /></button>
                                 </div>
@@ -805,7 +899,7 @@
                                         
                                         <button 
                                             onClick={handleSwapAddresses}
-                                            className={`p-2 rounded-full bg-slate-100 text-slate-500 transition-colors shadow-sm border border-slate-200 mt-2 sm:mt-4 ${mapContext === 'official' ? 'hover:bg-emerald-100 hover:text-emerald-600' : 'hover:bg-blue-100 hover:text-blue-600'}`}
+                                            className={`p-2 rounded-full bg-slate-100 text-slate-500 transition-colors shadow-sm border border-slate-200 mt-2 sm:mt-4 hover:bg-${themeColor}-100 hover:text-${themeColor}-600`}
                                             title="Inverter endereços"
                                         >
                                             <ArrowUpDown size={20} className="sm:rotate-90 transition-transform" />
@@ -821,26 +915,25 @@
                                             activeTab={mapContext}
                                         />
                                     </div>
-                                    <button onClick={handleRouteSearch} disabled={isSearching} className={`w-full text-white py-3 rounded-lg text-sm font-bold flex justify-center items-center gap-2 shadow-md transition-all active:scale-[0.98] ${mapContext === 'official' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                                    <button onClick={handleRouteSearch} disabled={isSearching} className={`w-full text-white py-3 rounded-lg text-sm font-bold flex justify-center items-center gap-2 shadow-md transition-all active:scale-[0.98] ${mapContext === 'official' ? 'bg-emerald-600 hover:bg-emerald-700' : (mapContext === 'simulation' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-violet-600 hover:bg-violet-700')}`}>
                                         {isSearching ? <div className="loader"></div> : <Search size={16} />} Buscar Rota
                                     </button>
                                 </div>
 
                                 <div className={`relative flex-grow w-full bg-slate-200 overflow-hidden min-h-[300px] ${pickingMode ? 'cursor-crosshair' : ''}`}>
                                     {pickingMode && (
-                                        <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold animate-bounce flex items-center gap-2 whitespace-nowrap pointer-events-none ${mapContext === 'official' ? 'bg-emerald-600' : 'bg-blue-600'}`}>
+                                        <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold animate-bounce flex items-center gap-2 whitespace-nowrap pointer-events-none ${mapContext === 'official' ? 'bg-emerald-600' : (mapContext === 'simulation' ? 'bg-blue-600' : 'bg-violet-600')}`}>
                                             <MapPin size={16} />
                                             Toque no mapa para definir {pickingMode === 'origin' ? 'Origem' : 'Destino'}
                                         </div>
                                     )}
                                     
-                                    {/* AQUI ESTÁ A CORREÇÃO: Usando ref nativo do React e classes absolutas do Tailwind */}
                                     <div ref={mapContainerRef} className="absolute inset-0 z-[1]"></div>
                                     
                                     {mapDistance > 0 && (
                                         <div className="absolute bottom-6 left-6 right-6 bg-white/95 p-4 rounded-lg shadow-lg border border-slate-200 flex justify-between items-center z-[1000]">
-                                            <div><div className="text-xs text-slate-500 uppercase font-bold">Distância</div><div className={`text-2xl font-bold ${mapContext === 'official' ? 'text-emerald-600' : 'text-blue-600'}`}>{mapDistance} km</div></div>
-                                            <button onClick={confirmMapDistance} className={`text-white px-6 py-2 rounded-lg font-bold ${mapContext === 'official' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}>Confirmar</button>
+                                            <div><div className="text-xs text-slate-500 uppercase font-bold">Distância</div><div className={`text-2xl font-bold ${mapContext === 'official' ? 'text-emerald-600' : (mapContext === 'simulation' ? 'text-blue-600' : 'text-violet-600')}`}>{mapDistance} km</div></div>
+                                            <button onClick={confirmMapDistance} className={`text-white px-6 py-2 rounded-lg font-bold ${mapContext === 'official' ? 'bg-emerald-600 hover:bg-emerald-700' : (mapContext === 'simulation' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-violet-600 hover:bg-violet-700')}`}>Confirmar</button>
                                         </div>
                                     )}
                                 </div>
@@ -882,26 +975,32 @@
                         
                         {/* HEADER */}
                         <div className="flex items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                            <h1 className={`text-2xl font-bold flex items-center gap-2 ${activeTab === 'official' ? 'text-emerald-600' : 'text-blue-600'}`}>
-                                {activeTab === 'official' ? <Zap className="fill-emerald-600" /> : <CalculatorIcon className="fill-blue-600" />} 
-                                MyScooter Log {activeTab === 'simulation' && <span className="text-sm font-normal text-slate-400 ml-2">- Simulação</span>}
+                            <h1 className={`text-2xl font-bold flex items-center gap-2 ${themeText}`}>
+                                {activeTab === 'official' ? <Zap className="fill-emerald-600" /> : (activeTab === 'simulation' ? <CalculatorIcon className="fill-blue-600" /> : <FlaskConical className="text-violet-600" />)} 
+                                MyScooter Log {activeTab !== 'official' && <span className="text-sm font-normal text-slate-400 ml-2">- {activeTab === 'simulation' ? 'Simulação 1' : 'Simulação 2'}</span>}
                             </h1>
                             <button onClick={() => setShowSettings(true)} className="p-2 text-slate-400 bg-white rounded-full shadow-sm border hover:bg-slate-50 transition-colors"><SettingsIcon /></button>
                         </div>
 
                         {/* ABAS DE NAVEGAÇÃO */}
-                        <div className="flex gap-4">
+                        <div className="flex gap-2 md:gap-4 overflow-x-auto pb-2">
                             <button 
                                 onClick={() => setActiveTab('official')} 
-                                className={`flex-1 py-3 rounded-2xl font-bold flex justify-center items-center gap-2 transition-all ${activeTab === 'official' ? 'bg-emerald-600 text-white shadow-lg scale-100' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 scale-95'}`}
+                                className={`flex-1 min-w-[100px] py-3 rounded-2xl font-bold flex justify-center items-center gap-2 transition-all ${activeTab === 'official' ? 'bg-emerald-600 text-white shadow-lg scale-100' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 scale-95'}`}
                             >
                                 <Zap size={20} className={activeTab === 'official' ? 'fill-white' : ''} /> Oficial
                             </button>
                             <button 
                                 onClick={() => setActiveTab('simulation')} 
-                                className={`flex-1 py-3 rounded-2xl font-bold flex justify-center items-center gap-2 transition-all ${activeTab === 'simulation' ? 'bg-blue-600 text-white shadow-lg scale-100' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 scale-95'}`}
+                                className={`flex-1 min-w-[100px] py-3 rounded-2xl font-bold flex justify-center items-center gap-2 transition-all ${activeTab === 'simulation' ? 'bg-blue-600 text-white shadow-lg scale-100' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 scale-95'}`}
                             >
-                                <CalculatorIcon size={20} className={activeTab === 'simulation' ? 'fill-white' : ''} /> Simulação
+                                <CalculatorIcon size={20} className={activeTab === 'simulation' ? 'fill-white' : ''} /> Sim 1
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('simulation2')} 
+                                className={`flex-1 min-w-[100px] py-3 rounded-2xl font-bold flex justify-center items-center gap-2 transition-all ${activeTab === 'simulation2' ? 'bg-violet-600 text-white shadow-lg scale-100' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 scale-95'}`}
+                            >
+                                <FlaskConical size={20} /> Sim 2
                             </button>
                         </div>
                         
@@ -909,11 +1008,11 @@
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
                                 <div className="text-xs text-slate-400 font-bold uppercase">Custo</div>
-                                <div className={`text-xl font-bold ${activeTab === 'official' ? 'text-emerald-600' : 'text-blue-600'}`}>R$ {totalCost.toFixed(2).replace('.', ',')}</div>
+                                <div className={`text-xl font-bold ${themeText}`}>R$ {totalCost.toFixed(2).replace('.', ',')}</div>
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
                                 <div className="text-xs text-slate-400 font-bold uppercase">KM</div>
-                                <div className={`text-xl font-bold ${activeTab === 'official' ? 'text-blue-600' : 'text-indigo-600'}`}>{totalKm.toFixed(1)} km</div>
+                                <div className={`text-xl font-bold ${themeText}`}>{totalKm.toFixed(1)} km</div>
                             </div>
                             
                             <div className={`${batteryBgClass} p-4 rounded-xl shadow-sm border text-center transition-colors duration-300`}>
@@ -928,15 +1027,19 @@
                         </div>
                         
                         {/* FORMULÁRIO */}
-                        <div className={`bg-white p-6 rounded-2xl shadow-md border-l-4 ${activeTab === 'official' ? 'border-emerald-500' : 'border-blue-500'}`}>
+                        <div className={`bg-white p-6 rounded-2xl shadow-md border-l-4 ${themeBorder}`}>
                             <form onSubmit={handleAddTrip} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label>
                                     <input 
                                         type="date" 
                                         required 
-                                        value={activeTab === 'official' ? newDate : simDate} 
-                                        onChange={(e) => activeTab === 'official' ? setNewDate(e.target.value) : setSimDate(e.target.value)} 
+                                        value={activeTab === 'official' ? newDate : (activeTab === 'simulation' ? simDate : simDate2)} 
+                                        onChange={(e) => {
+                                            if (activeTab === 'official') setNewDate(e.target.value);
+                                            else if (activeTab === 'simulation') setSimDate(e.target.value);
+                                            else setSimDate2(e.target.value);
+                                        }} 
                                         className="w-full bg-slate-50 border rounded-lg p-2.5" 
                                     />
                                 </div>
@@ -945,9 +1048,11 @@
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Trajeto</label>
                                     <input 
                                         type="text" 
-                                        value={activeTab === 'official' ? newRoute : simRoute} 
+                                        value={activeTab === 'official' ? newRoute : (activeTab === 'simulation' ? simRoute : simRoute2)} 
                                         onChange={(e) => { 
-                                            activeTab === 'official' ? setNewRoute(e.target.value) : setSimRoute(e.target.value); 
+                                            if (activeTab === 'official') setNewRoute(e.target.value);
+                                            else if (activeTab === 'simulation') setSimRoute(e.target.value);
+                                            else setSimRoute2(e.target.value);
                                             setShowRouteList(true); 
                                         }}
                                         onFocus={() => setShowRouteList(true)}
@@ -960,10 +1065,10 @@
                                                 <li 
                                                     key={idx} 
                                                     onMouseDown={() => handlePredefinedRouteSelect(route)}
-                                                    className={`p-3 cursor-pointer border-b border-slate-50 last:border-0 flex justify-between items-center ${activeTab === 'official' ? 'hover:bg-emerald-50' : 'hover:bg-blue-50'}`}
+                                                    className={`p-3 cursor-pointer border-b border-slate-50 last:border-0 flex justify-between items-center hover:bg-${themeColor}-50`}
                                                 >
                                                     <span className="text-sm font-bold text-slate-700">{route.name}</span>
-                                                    <span className={`text-xs font-bold px-2 py-1 rounded ${activeTab === 'official' ? 'text-emerald-600 bg-emerald-50' : 'text-blue-600 bg-blue-50'}`}>{route.dist.toString().replace('.', ',')} km</span>
+                                                    <span className={`text-xs font-bold px-2 py-1 rounded text-${themeColor}-600 bg-${themeColor}-50`}>{route.dist.toString().replace('.', ',')} km</span>
                                                 </li>
                                             ))}
                                             {PREDEFINED_ROUTES.filter(r => r.name.toLowerCase().includes(currentRouteInput.toLowerCase())).length === 0 && (
@@ -980,14 +1085,18 @@
                                             type="number" 
                                             step="0.1" 
                                             required 
-                                            value={activeTab === 'official' ? newDistance : simDistance} 
-                                            onChange={(e) => activeTab === 'official' ? setNewDistance(e.target.value) : setSimDistance(e.target.value)} 
+                                            value={activeTab === 'official' ? newDistance : (activeTab === 'simulation' ? simDistance : simDistance2)} 
+                                            onChange={(e) => {
+                                                if (activeTab === 'official') setNewDistance(e.target.value);
+                                                else if (activeTab === 'simulation') setSimDistance(e.target.value);
+                                                else setSimDistance2(e.target.value);
+                                            }} 
                                             className="w-full border rounded-lg p-2.5" 
                                         />
                                         <button 
                                             type="button" 
                                             onClick={() => { setMapContext(activeTab); setShowMap(true); }} 
-                                            className={`p-2.5 rounded-lg transition-colors ${activeTab === 'official' ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`}
+                                            className={`p-2.5 rounded-lg transition-colors bg-${themeColor}-100 text-${themeColor}-600 hover:bg-${themeColor}-200`}
                                         >
                                             <MapIcon size={20} />
                                         </button>
@@ -995,7 +1104,7 @@
                                 </div>
                                 <button 
                                     type="submit" 
-                                    className={`md:col-span-4 text-white font-bold py-3 rounded-lg transition-colors ${activeTab === 'official' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                    className={`md:col-span-4 text-white font-bold py-3 rounded-lg transition-colors ${themeBg} ${themeHover}`}
                                 >
                                     {activeTab === 'official' ? 'Registrar Viagem' : 'Adicionar à Simulação'}
                                 </button>
@@ -1006,17 +1115,17 @@
                         <div className="space-y-4">
                             <div className="flex justify-between items-center px-2">
                                 <h2 className="text-lg font-bold text-slate-700 flex items-center gap-2">
-                                    <Calendar size={20} /> {activeTab === 'official' ? 'Histórico de Viagens' : 'Trajetos Simulados'}
+                                    <Calendar size={20} /> {activeTab === 'official' ? 'Histórico de Viagens' : (activeTab === 'simulation' ? 'Trajetos Simulados 1' : 'Trajetos Simulados 2')}
                                 </h2>
                                 
-                                {/* BOTÕES EXTRAS NA ABA DE SIMULAÇÃO */}
-                                {activeTab === 'simulation' && (
+                                {/* BOTÕES EXTRAS NAS ABAS DE SIMULAÇÃO */}
+                                {activeTab !== 'official' && (
                                     <div className="flex gap-2">
-                                        <button onClick={handleCopyOfficialToSimulation} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg transition-colors">
+                                        <button onClick={() => handleCopyOfficialToSimulation(activeTab === 'simulation' ? 1 : 2)} className={`text-xs text-${themeColor}-600 hover:text-${themeColor}-800 font-bold flex items-center gap-1 bg-${themeColor}-50 px-3 py-1.5 rounded-lg transition-colors`}>
                                             <Copy size={14}/> Copiar Oficial
                                         </button>
-                                        {simulatedTrips.length > 0 && (
-                                            <button onClick={handleClearSimulation} className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+                                        {currentTrips.length > 0 && (
+                                            <button onClick={() => handleClearSimulation(activeTab === 'simulation' ? 1 : 2)} className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
                                                 <Trash2 size={14}/> Limpar
                                             </button>
                                         )}
@@ -1045,7 +1154,7 @@
                                             <div key={trip.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                                 <div className="flex-grow">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 ${activeTab === 'official' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 bg-${themeColor}-100 text-${themeColor}-700`}>
                                                             {day}/{month}/{year}
                                                             <span className={isRed ? 'text-red-500 font-black' : 'opacity-70'}>
                                                                 - {dayOfWeekStr}
@@ -1063,7 +1172,7 @@
                                                 <div className="flex gap-2 self-end sm:self-center">
                                                     <button 
                                                         onClick={() => openDuplicateModal(trip)}
-                                                        className={`p-2 rounded-full transition-colors ${activeTab === 'official' ? 'text-slate-300 hover:text-emerald-500 hover:bg-emerald-50' : 'text-slate-300 hover:text-blue-500 hover:bg-blue-50'}`}
+                                                        className={`p-2 rounded-full transition-colors text-slate-300 hover:text-${themeColor}-500 hover:bg-${themeColor}-50`}
                                                         title="Duplicar viagem"
                                                     >
                                                         <Copy size={20} />
