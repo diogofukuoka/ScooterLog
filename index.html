@@ -609,11 +609,13 @@
                 if (mapContext === 'official') {
                     setNewDistance(mapDistance);
                     setNewRoute(finalRoute);
-                    localStorage.setItem('scooter_last_dest', addrDest);
                 } else {
                     setSimDistance(mapDistance);
                     setSimRoute(finalRoute);
                 }
+                
+                // Salva o destino atual como a próxima origem, independentemente da aba
+                localStorage.setItem('scooter_last_dest', addrDest);
                 
                 setShowMap(false);
                 setMapDistance(0);
@@ -653,6 +655,18 @@
             const handleAddTrip = (e) => {
                 e.preventDefault();
                 
+                // Função auxiliar para atualizar o último destino com base na string da rota
+                const updateLastDest = (routeStr) => {
+                    if (routeStr) {
+                        const parts = routeStr.split('/');
+                        const lastLocationName = parts[parts.length - 1].trim();
+                        const foundLocation = SAVED_LOCATIONS.find(loc => loc.name.toLowerCase() === lastLocationName.toLowerCase());
+                        const finalAddress = foundLocation ? foundLocation.address : lastLocationName;
+                        localStorage.setItem('scooter_last_dest', finalAddress);
+                        setAddrOrigin(finalAddress);
+                    }
+                };
+
                 if (activeTab === 'official') {
                     if (!newDistance || !newRoute) return;
                     const distValue = parseFloat(newDistance.toString().replace(',', '.'));
@@ -661,15 +675,8 @@
                     localStorage.setItem('scooter_trips', JSON.stringify(updatedTrips));
                     syncWithGithub(updatedTrips, simulatedTrips);
 
-                    if (newRoute) {
-                        const parts = newRoute.split('/');
-                        const lastLocationName = parts[parts.length - 1].trim();
-                        const foundLocation = SAVED_LOCATIONS.find(loc => loc.name.toLowerCase() === lastLocationName.toLowerCase());
-                        if (foundLocation) {
-                            localStorage.setItem('scooter_last_dest', foundLocation.address);
-                            setAddrOrigin(foundLocation.address); 
-                        }
-                    }
+                    updateLastDest(newRoute);
+
                     setNewRoute(''); setNewDistance('');
                 } else {
                     if (!simDistance || !simRoute) return;
@@ -678,6 +685,9 @@
                     setSimulatedTrips(updatedSims);
                     localStorage.setItem('scooter_sim_trips', JSON.stringify(updatedSims));
                     syncWithGithub(trips, updatedSims);
+                    
+                    updateLastDest(simRoute);
+
                     setSimRoute(''); setSimDistance('');
                 }
             };
